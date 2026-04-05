@@ -19,7 +19,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Find Your Crew',
+  title: 'behuddle',
   description: 'The space where lonely side-projects turn into real startups. Find your co-founder or contribute to something bigger.',
 }
 
