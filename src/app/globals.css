@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F8F9FA;
+    color: #111111;
+    overflow-x: hidden;
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    font-kerning: normal;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-syne), system-ui, sans-serif;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+}
+
+.bg-texture {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+}
+
+.brutal-btn {
+  @apply px-8 py-3 rounded-xl border-2 border-black bg-white text-black font-medium transition-all;
+  box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+}
+
+.brutal-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px rgba(0,0,0,1);
+}
+
+.brutal-btn:focus-visible {
+  outline: 3px solid #4F46E5;
+  outline-offset: 3px;
+}
+
+.brutal-btn-dark {
+  @apply px-8 py-3 rounded-xl border-2 border-black bg-black text-white font-medium transition-all;
+  box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+}
+
+.brutal-btn-dark:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px rgba(0,0,0,1);
+}
+
+.brutal-btn-dark:focus-visible {
+  outline: 3px solid #4F46E5;
+  outline-offset: 3px;
+}
