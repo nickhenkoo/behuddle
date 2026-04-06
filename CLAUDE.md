@@ -1,4 +1,4 @@
-# CLAUDE.md — Collab.io
+# CLAUDE.md — behuddle.com
 
 Read this file before any action. This is the single source of truth for the project.
 
