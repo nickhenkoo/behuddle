@@ -1,69 +1,188 @@
-# CLAUDE.md — Behuddle.com
+# CLAUDE.md — Collab.io
 
-Этот файл содержит полный контекст проекта. Читай его перед любым действием.
-
----
-
-## Что это за продукт
-
-Платформа для коллаборации между двумя типами людей:
-
-- **Builder** — есть идея или проект, не хватает скила или рук
-- **Contributor** — нет идеи или трудно начать с нуля, но хочет вносить вклад и быть частью чего-то нового
-
-Киллер-фича — **Искра**: AI-generated объяснение потенциала конкретной пары людей. Не просто "вы похожи", а "вот что именно вы можете построить вместе и почему именно вы двое".
+Read this file before any action. This is the single source of truth for the project.
 
 ---
 
-## Стек
+## What this product is
 
-| Слой | Технология | Причина |
+A collaboration platform connecting two types of people:
+
+- **Builder** — has an idea or project, lacks skills or hands
+- **Contributor** — has no idea or struggles to start from scratch, but wants to contribute and be part of something new
+
+Killer feature — **The Spark**: AI-generated explanation of the potential between two specific people. Not "you're similar" but "here's exactly what you could build together and why you two specifically."
+
+---
+
+## Current project state
+
+```
+src/
+├── app/
+│   ├── dashboard/
+│   │   └── page.tsx          ← initial dashboard layout exists, needs full implementation
+│   ├── login/
+│   │   ├── page.tsx          ← initial login page exists, needs full implementation
+│   │   └── globals.css
+│   ├── layout.tsx
+│   ├── page.tsx              ← landing page root
+│   ├── icon.png
+│   └── logo.png
+├── components/               ← landing page components (all exist)
+│   ├── CallToAction.tsx
+│   ├── ConsoleEgg.tsx
+│   ├── Footer.tsx
+│   ├── Hero.tsx
+│   ├── HowItWorks.tsx
+│   ├── Manifesto.tsx
+│   ├── Navbar.tsx
+│   ├── TwoDoors.tsx
+├── lib/
+│   └── utils.ts
+├── CLAUDE.md
+├── next.config.mjs
+├── tailwind.config.ts
+└── tsconfig.json
+```
+
+**What exists:**
+- [x] Landing page with all sections
+- [x] Login page
+- [x] Dashboard layout (shell)
+- [x] CLAUDE.md in root
+
+**What needs to be built:**
+- [ ] Supabase project created
+- [ ] Registration page (`/register`)
+- [ ] Onboarding flow (role → skills → motivation → status)
+- [ ] Dashboard — all tabs implemented
+- [ ] DB schema migrated
+- [ ] Matchmaking edge function
+- [ ] Realtime chat
+- [ ] Map tab
+- [ ] Community tab
+
+---
+
+## Target structure to build toward
+
+```
+src/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/page.tsx          ← initial version already exists, move here
+│   │   ├── register/page.tsx       ← to build
+│   │   └── onboarding/page.tsx     ← to build
+│   ├── (dashboard)/
+│   │   ├── layout.tsx              ← nav sidebar
+│   │   ├── page.tsx                ← home tab
+│   │   ├── matches/page.tsx        ← swipe + list
+│   │   ├── people/page.tsx         ← people catalog
+│   │   ├── ideas/page.tsx          ← projects & ideas
+│   │   ├── map/page.tsx            ← user map
+│   │   ├── community/page.tsx      ← posts
+│   │   └── messages/
+│   │       ├── page.tsx
+│   │       └── [conversationId]/page.tsx
+│   ├── api/
+│   │   ├── match/route.ts
+│   │   └── geocode/route.ts
+│   └── layout.tsx
+├── components/
+│   ├── landing/                    ← move all current components here
+│   │   ├── CallToAction.tsx
+│   │   ├── ConsoleEgg.tsx
+│   │   ├── Footer.tsx
+│   │   ├── Hero.tsx
+│   │   ├── HowItWorks.tsx
+│   │   ├── Manifesto.tsx
+│   │   ├── Navbar.tsx
+│   │   ├── TwoDoors.tsx
+│   ├── dashboard/
+│   │   ├── Nav.tsx
+│   │   ├── SparkCard.tsx
+│   │   ├── UrgentDialog.tsx
+│   │   ├── StatusBar.tsx
+│   │   ├── WeeklyQuestion.tsx
+│   │   ├── NearbyPeople.tsx
+│   │   ├── ProjectUpdates.tsx
+│   │   └── SpotlightProject.tsx
+│   ├── matches/
+│   │   ├── SwipeStack.tsx
+│   │   └── MatchCard.tsx
+│   ├── map/
+│   │   └── MapView.tsx
+│   └── ui/
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts
+│   │   ├── server.ts
+│   │   └── middleware.ts
+│   ├── matching/
+│   │   └── score.ts
+│   ├── claude/
+│   │   └── spark.ts
+│   └── utils.ts
+├── supabase/
+│   ├── migrations/
+│   └── functions/
+│       └── match-engine/
+│           └── index.ts
+└── middleware.ts
+```
+
+---
+
+## Stack
+
+| Layer | Technology | Reason |
 |---|---|---|
-| Frontend | Next.js 14 (App Router) | Server Components + Client Components, SEO |
-| Backend / БД | Supabase (Postgres) | Auth, Realtime, Storage, Edge Functions в одном |
-| Auth | Supabase Auth | Email/password + Google OAuth из коробки |
-| AI | Claude API (claude-sonnet-4-20250514) | Генерация spark_text для мэтчей |
-| Email | Resend | Недельный дайджест, уведомления |
-| Карта | Mapbox GL JS | Интерактивная карта пользователей |
-| Геокодинг | Nominatim (бесплатно) | City name → lat/lng при регистрации |
-| Хостинг | Vercel | Edge runtime, деплой из GitHub |
-| Стили | Tailwind CSS | Утилитарный подход, быстро |
-| Язык | TypeScript | Везде, включая Edge Functions |
+| Frontend | Next.js 14 (App Router) | Already set up |
+| Database | Supabase (Postgres) | Auth, Realtime, Storage, Edge Functions |
+| Auth | Supabase Auth | Email/password + Google OAuth |
+| AI | Claude API (claude-sonnet-4-20250514) | Spark text generation |
+| Email | Resend | Weekly digest, notifications |
+| Map | Mapbox GL JS | Interactive user map |
+| Geocoding | Nominatim (free) | City name → lat/lng on registration |
+| Hosting | Vercel | Edge runtime, deploy from GitHub |
+| Styles | Tailwind CSS | Already configured |
+| Language | TypeScript | Everywhere including Edge Functions |
+
+**App language: English** — international product from day one.
 
 ---
 
-## Архитектура БД
+## Database schema
 
-### Таблица `profiles`
-Расширение `auth.users`. Создаётся автоматически через trigger при регистрации.
-
+### `profiles`
 ```sql
 create table profiles (
   id                 uuid references auth.users(id) on delete cascade primary key,
   role               text not null check (role in ('builder', 'contributor')),
   full_name          text,
   avatar_url         text,
-  bio                text,                  -- кто ты и зачем пришёл
-  motivation         text,                  -- что хочешь получить
-  location           text,                  -- название города
-  lat                float8,               -- координаты (округлены до ~10км)
+  bio                text,
+  motivation         text,
+  location           text,
+  lat                float8,
   lng                float8,
-  status             text default 'open'   -- open | busy | looking_for_designer | away
+  status             text default 'open'
                      check (status in ('open','busy','looking_for_designer','away')),
-  availability_hours int,                   -- часов в неделю
+  availability_hours int,
   is_open_to_match   boolean default true,
-  is_verified        boolean default false, -- подтверждён через GitHub/LinkedIn
+  is_verified        boolean default false,
   created_at         timestamptz default now(),
   updated_at         timestamptz default now()
 );
 ```
 
-### Таблица `skills`
+### `skills`
 ```sql
 create table skills (
   id       serial primary key,
   name     text unique not null,
-  category text  -- 'design' | 'engineering' | 'marketing' | 'business' | 'other'
+  category text check (category in ('design','engineering','marketing','business','other'))
 );
 
 create table profile_skills (
@@ -74,7 +193,7 @@ create table profile_skills (
 );
 ```
 
-### Таблица `projects`
+### `projects`
 ```sql
 create table projects (
   id              uuid default gen_random_uuid() primary key,
@@ -82,13 +201,13 @@ create table projects (
   title           text not null,
   description     text,
   stage           text check (stage in ('idea','prototype','building','launched')),
-  domain          text,                    -- 'medtech' | 'edtech' | 'climate' | ...
-  what_exists     text,                    -- что уже сделано
-  what_needed     text,                    -- чего не хватает
+  domain          text,
+  what_exists     text,
+  what_needed     text,
   is_active       boolean default true,
-  is_paused       boolean default false,   -- скрыт из мэтчей, но не удалён
-  is_spotlight    boolean default false,   -- "идея недели" на главной
-  spotlight_week  int,                     -- номер недели года
+  is_paused       boolean default false,
+  is_spotlight    boolean default false,
+  spotlight_week  int,
   last_updated_at timestamptz default now(),
   created_at      timestamptz default now()
 );
@@ -108,15 +227,15 @@ create table project_likes (
 );
 ```
 
-### Таблица `matches`
+### `matches`
 ```sql
 create table matches (
   id         uuid default gen_random_uuid() primary key,
-  profile_a  uuid references profiles(id),  -- тот, кому показывают
-  profile_b  uuid references profiles(id),  -- кого показывают
-  project_id uuid references projects(id),  -- к какому проекту мэтч
-  score      numeric(5,2),                  -- 0-100
-  spark_text text,                          -- AI-generated, генерируется асинхронно
+  profile_a  uuid references profiles(id),
+  profile_b  uuid references profiles(id),
+  project_id uuid references projects(id),
+  score      numeric(5,2),
+  spark_text text,
   source     text check (source in ('ai','map','browse')),
   status_a   text default 'pending'
              check (status_a in ('pending','yes','no','deferred')),
@@ -126,14 +245,12 @@ create table matches (
 );
 ```
 
-Когда оба `status = 'yes'` — trigger автоматически создаёт `conversation`.
-
-### Таблицы чата
+### Chat
 ```sql
 create table conversations (
   id         uuid default gen_random_uuid() primary key,
   match_id   uuid references matches(id),
-  context    text,   -- 'через Искру · AI-дневник для терапии'
+  context    text,
   created_at timestamptz default now()
 );
 
@@ -148,12 +265,12 @@ create table messages (
 create index on messages(conversation_id, created_at desc);
 ```
 
-### Комьюнити
+### Community
 ```sql
 create table posts (
   id         uuid default gen_random_uuid() primary key,
   author_id  uuid references profiles(id),
-  project_id uuid references projects(id),  -- nullable, привязка к проекту
+  project_id uuid references projects(id),
   type       text check (type in ('question','find','case')),
   title      text not null,
   body       text,
@@ -170,7 +287,7 @@ create table comments (
 );
 ```
 
-### Вопросы недели (для главной)
+### Weekly questions
 ```sql
 create table weekly_questions (
   id          serial primary key,
@@ -190,20 +307,17 @@ create table weekly_question_answers (
 
 ---
 
-## RLS политики
+## RLS policies
 
 ```sql
--- Профили: читают все, редактирует только владелец
 alter table profiles enable row level security;
 create policy "profiles public read" on profiles for select using (true);
 create policy "profiles own update" on profiles for update using (id = auth.uid());
 
--- Мэтчи: видит только участник
 alter table matches enable row level security;
 create policy "matches own read" on matches for select
   using (profile_a = auth.uid() or profile_b = auth.uid());
 
--- Сообщения: только участники разговора
 alter table messages enable row level security;
 create policy "messages conversation read" on messages for select
   using (
@@ -215,7 +329,6 @@ create policy "messages conversation read" on messages for select
     )
   );
 
--- Проекты: читают все, редактирует владелец
 alter table projects enable row level security;
 create policy "projects public read" on projects for select using (true);
 create policy "projects own write" on projects for all using (owner_id = auth.uid());
@@ -223,8 +336,9 @@ create policy "projects own write" on projects for all using (owner_id = auth.ui
 
 ---
 
-## Trigger: создание профиля при регистрации
+## Key triggers
 
+### Auto-create profile on registration
 ```sql
 create or replace function handle_new_user()
 returns trigger as $$
@@ -244,10 +358,7 @@ create trigger on_auth_user_created
   for each row execute procedure handle_new_user();
 ```
 
----
-
-## Trigger: mutual match → создать conversation
-
+### Mutual match → create conversation
 ```sql
 create or replace function check_mutual_match()
 returns trigger as $$
@@ -256,8 +367,7 @@ begin
     insert into conversations (match_id, context)
     values (
       NEW.id,
-      (select 'через Искру · ' || p.title
-       from projects p where p.id = NEW.project_id)
+      (select 'via Spark · ' || p.title from projects p where p.id = NEW.project_id)
     );
   end if;
   return NEW;
@@ -271,33 +381,23 @@ create trigger on_mutual_match
 
 ---
 
-## Алгоритм мэтчмейкинга
+## Matchmaking algorithm
 
-Запускается через Supabase Edge Function `match-engine`.
+Edge Function: `supabase/functions/match-engine/index.ts`
 
-**Триггеры запуска:**
-- Обновление профиля пользователя
-- Создание/обновление проекта
-- Cron каждые 6 часов (`pg_cron`)
+**Triggers:** profile update, project create/update, cron every 6h
 
-**Scoring формула:**
+**Scoring:**
 ```
 score = skills_overlap * 0.50
       + domain_match   * 0.25
       + availability   * 0.15
       + activity_score * 0.10
 
--- Бонус +15% если is_verified = true
+bonus: +15% if is_verified = true
 ```
 
-**Флоу:**
-1. Берём builder с активным проектом → смотрим `project_skill_needs`
-2. Ищем contributors где skills пересекаются, статус `open`, не было мэтча раньше
-3. Считаем score в Postgres (без сети, быстро)
-4. Топ-5 пар → батч-запрос к Claude API для генерации `spark_text`
-5. Записываем в `matches` → Supabase Realtime пушит уведомление
-
-**Промпт для Искры:**
+**Spark prompt (lib/claude/spark.ts):**
 ```typescript
 const prompt = {
   system: `You help people find collaborators for their projects.
@@ -315,176 +415,86 @@ Write the Spark text.`
 
 ---
 
-## Структура проекта (Next.js)
+## Dashboard home tab — blocks in order
 
-```
-collab-io/
-├── CLAUDE.md                        ← этот файл
-├── app/
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── (dashboard)/
-│   │   ├── layout.tsx              ← nav sidebar
-│   │   ├── page.tsx                ← главная
-│   │   ├── matches/page.tsx        ← свайп + список
-│   │   ├── people/page.tsx         ← каталог людей
-│   │   ├── ideas/page.tsx          ← проекты и идеи
-│   │   ├── map/page.tsx            ← карта пользователей
-│   │   ├── community/page.tsx      ← посты
-│   │   └── messages/
-│   │       ├── page.tsx
-│   │       └── [conversationId]/page.tsx
-│   ├── api/
-│   │   ├── match/route.ts          ← webhook от edge function
-│   │   └── geocode/route.ts        ← city → lat/lng
-│   └── layout.tsx
-├── components/
-│   ├── dashboard/
-│   │   ├── Nav.tsx
-│   │   ├── SparkCard.tsx           ← Искра дня
-│   │   ├── UrgentDialog.tsx        ← «Максим ждёт 3 дня»
-│   │   ├── StatusBar.tsx           ← статус пользователя
-│   │   ├── WeeklyQuestion.tsx
-│   │   ├── NearbyPeople.tsx
-│   │   ├── ProjectUpdates.tsx
-│   │   └── SpotlightProject.tsx
-│   ├── matches/
-│   │   ├── SwipeStack.tsx          ← свайп-карточки
-│   │   └── MatchCard.tsx
-│   ├── map/
-│   │   └── MapView.tsx             ← Mapbox GL
-│   └── ui/                         ← переиспользуемые компоненты
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts               ← browser client
-│   │   ├── server.ts               ← server client (SSR)
-│   │   └── middleware.ts
-│   ├── matching/
-│   │   └── score.ts                ← scoring логика
-│   └── claude/
-│       └── spark.ts                ← генерация Искры
-├── supabase/
-│   ├── migrations/                 ← все SQL миграции
-│   └── functions/
-│       └── match-engine/
-│           └── index.ts            ← Edge Function
-├── .env.local
-└── middleware.ts                   ← auth guard
+| Block | Data source | Cache |
+|---|---|---|
+| Status bar | profiles.status (own record) | none |
+| Urgent dialog | messages WHERE sender != me, unread, sorted by age | none |
+| Spark of the day | matches WHERE status='pending' ORDER BY score DESC LIMIT 1 | 6h |
+| Project updates | project_likes JOIN projects WHERE updated_at > last_visit | 15min |
+| Nearby people | profiles WHERE city = me.city AND is_open = true LIMIT 3 | 1h |
+| Weekly question | weekly_questions WHERE NOT answered by me | 24h |
+| Spotlight project | projects WHERE is_spotlight = true AND spotlight_week = current | 24h |
+
+---
+
+## Map privacy
+
+Coordinates rounded to 2 decimal places (~10km) before sending to client.
+
+```sql
+create view map_users as
+  select
+    id, full_name, role, status,
+    round(lat::numeric, 2)::float8 as lat,
+    round(lng::numeric, 2)::float8 as lng,
+    is_verified
+  from profiles
+  where is_open_to_match = true and lat is not null;
 ```
 
 ---
 
-## Переменные окружения (.env.local)
+## Environment variables (.env.local)
 
 ```bash
-# Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...   # только на сервере, никогда на клиенте
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# Claude API
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Email
 RESEND_API_KEY=re_...
 
-# Карта
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ...
 ```
 
 ---
 
-## Dashboard — главная страница
+## Implementation order
 
-Блоки в порядке отображения:
-
-1. **Статус-бар** — переключатель состояния пользователя (open / busy / looking_for_designer / away). Влияет на видимость в мэтчах.
-
-2. **Срочный блок** — «Максим ждёт ответа 3 дня». Запрос: messages WHERE sender != me AND created_at > last_read, сортировка по давности. Кеш: нет.
-
-3. **Искра дня** — топ-1 матч из matches WHERE status = 'pending' ORDER BY score DESC. Кеш: 6 часов.
-
-4. **Изменения в избранном** — project_likes JOIN projects WHERE updated_at > last_visit. Кеш: 15 минут.
-
-5. **Рядом с тобой** — profiles WHERE city = me.city AND is_open = true ORDER BY random() LIMIT 3. Кеш: 1 час.
-
-6. **Вопрос недели** — weekly_questions WHERE NOT answered by me. Раз в 7 дней. Ответ уточняет профиль для мэтчей.
-
-7. **Идея недели** — projects WHERE is_spotlight = true AND spotlight_week = current_week. Кеш: 24 часа.
+| Week | Task |
+|------|------|
+| 1–2 | Supabase project, DB schema, Auth wired to login page, onboarding flow |
+| 3–4 | Projects CRUD, people catalog, basic matchmaking (SQL only, no AI yet) |
+| 5 | Claude API → Spark, swipe UI, match statuses |
+| 6–7 | Realtime chat, conversation context, in-app notifications |
+| 8 | Map tab, geocoding, coordinate rounding |
+| 9–10 | Community tab, posts linked to projects |
+| 11–12 | Email digest (Resend), GitHub Verify, load testing |
 
 ---
 
-## Приватность координат на карте
+## Decisions already made — do not revisit
 
-Координаты пользователей **округляются до 2 знаков после запятой** (~10 км точность) перед отдачей клиенту. Точный адрес не хранится и не передаётся.
-
-```sql
--- View для карты (никогда не отдаём точные координаты)
-create view map_users as
-  select
-    id,
-    full_name,
-    role,
-    status,
-    round(lat::numeric, 2)::float8 as lat,
-    round(lng::numeric, 2)::float8 as lng,
-    is_verified
-  from profiles
-  where is_open_to_match = true
-    and lat is not null;
-```
+- **Community** — no abstract feed. Every post must be linked to a project. Keeps content structured at small scale.
+- **Home tab** — no vanity stats ("12 new projects"). One specific urgent CTA instead.
+- **3D globe** — not doing. Flat map with dots for now, Mapbox on second iteration.
+- **AI matchmaking** — SQL only for first 2 weeks. Claude API added at week 5.
+- **Chat** — minimal. No channels, threads, reactions. Just dialogue.
+- **Coordinates** — rounded to ~10km. No exact address stored ever.
+- **`deferred` status** — "later" is not a rejection. Revisited after a week or on project update.
+- **Language** — English only. International from day one.
+- **Components** — current landing components stay as-is, get moved to `components/landing/` subfolder.
 
 ---
 
-## Verify — подтверждение профиля
+## Immediate next steps
 
-1. Пользователь нажимает «Подтвердить через GitHub»
-2. GitHub OAuth → проверяем: account age > 6 месяцев, публичные репо > 0
-3. `is_verified = true` в profiles
-4. Верифицированные профили получают +15% к score в мэтчах и приоритет в показе
-
----
-
-## Порядок реализации (план по неделям)
-
-| Неделя | Что делаем |
-|--------|-----------|
-| 1–2 | Supabase проект, схема БД, Auth, профиль, онбординг |
-| 3–4 | Проекты, каталог людей, базовый мэтчмейкинг без AI |
-| 5 | Claude API → Искра, свайп-интерфейс, статусы мэтча |
-| 6–7 | Realtime чат, контекст диалога, уведомления |
-| 8 | Карта, геокодинг, приватность координат |
-| 9–10 | Комьюнити, посты, привязка к проектам |
-| 11–12 | Email дайджест (Resend), Verify (GitHub OAuth), нагрузочное тестирование |
-
----
-
-## Текущий статус
-
-- [x] Продуктовая концепция готова
-- [x] БД схема спроектирована
-- [x] UI концепт готов (все вкладки)
-- [x] Технический план готов
-- [ ] Supabase проект создан ← **следующий шаг**
-- [ ] Миграции накатаны
-- [ ] Next.js проект инициализирован
-- [ ] Онбординг
-
----
-
-## Важные решения, которые уже приняты
-
-**Комьюнити** — нет отдельного абстрактного фида. Каждый пост обязательно привязан к проекту или идее. Это структурирует дискуссию и не даёт скатиться в шум на старте с небольшой базой.
-
-**Статистика на главной** — убрана. Вместо «12 новых проектов» — один живой призыв к действию (срочный блок с конкретным человеком).
-
-**3D-глобус** — не делаем. SVG-карта с точками + Mapbox на второй итерации. Не нужна сложность на старте.
-
-**Мэтчмейкинг без AI сначала** — первые 2 недели алгоритм работает на чистом SQL. Claude API подключается на неделе 5, когда уже есть реальные пары.
-
-**Чат минималистичный** — никаких каналов, тредов, реакций. Только диалог. Платформа не должна конкурировать с Telegram.
-
-**Координаты карты** — округляем до ~10 км. Точный адрес не храним.
-
-**`deferred` статус в мэтчах** — «позже» это не отказ. Хранится отдельно, пересматривается через неделю или когда проект обновился.
+1. Create Supabase project → supabase.com/dashboard
+2. Share project ID → apply all migrations via connector
+3. Install Supabase packages: `npm install @supabase/supabase-js @supabase/ssr`
+4. Wire Auth to existing `/login` page
+5. Build `/register` and `/onboarding`
+6. Move components to `components/landing/`
