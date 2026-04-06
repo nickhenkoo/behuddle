@@ -48,7 +48,7 @@ src/
 
 **What exists:**
 - [x] Landing page with all sections
-- [x] Login page
+- [x] Login page (initial)
 - [x] Dashboard layout (shell)
 - [x] CLAUDE.md in root
 
