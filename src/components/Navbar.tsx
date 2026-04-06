@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
+import LogoPng from "@/app/logo.png";
 
 export function Navbar() {
   return (
@@ -11,10 +13,14 @@ export function Navbar() {
       transition={{ duration: 0.6 }}
       className="w-full top-0 left-0 right-0 z-50 fixed bg-background border-b border-black/[0.06] flex items-center justify-between px-8 md:px-16 py-5"
     >
-      <div className="flex items-center gap-2">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 2L2 22h20L12 2z" className="text-black" />
-        </svg>
+      <div className="flex items-center gap-1.5">
+        <Image
+          src={LogoPng}
+          alt="behuddle logo"
+          width={24}
+          height={24}
+          className="object-contain"
+        />
         <span className="font-display text-xl font-bold tracking-tight text-black">behuddle</span>
       </div>
 
