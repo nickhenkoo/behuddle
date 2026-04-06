@@ -1,18 +1,30 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useTransition, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Github } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowRight, Chrome } from "lucide-react";
+import { login, loginWithGoogle } from "@/lib/supabase/actions";
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    router.push("/dashboard");
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const result = await login(formData);
+      if (result?.error) setError(result.error);
+    });
+  };
+
+  const handleGoogle = () => {
+    startTransition(async () => {
+      const result = await loginWithGoogle();
+      if (result?.error) setError(result.error);
+    });
   };
 
   return (
@@ -31,49 +43,46 @@ export default function LoginPage() {
       >
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold tracking-tight text-black mb-2">
-            {isLogin ? "Welcome back" : "Join the crew"}
+            Welcome back
           </h1>
           <p className="text-sm text-neutral-500">
-            {isLogin
-              ? "Enter your details to access your dashboard."
-              : "Create an account to start building."}
+            Enter your details to access your dashboard.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {!isLogin && (
-            <input
-              type="text"
-              aria-label="Username"
-              placeholder="Username"
-              autoComplete="username"
-              className="w-full bg-white border border-black/20 rounded-xl px-4 py-3 text-black placeholder-neutral-400 focus:outline-none focus:border-black focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1 transition-colors"
-              required
-            />
-          )}
           <input
             type="email"
+            name="email"
             aria-label="Email address"
             placeholder="Email address"
             autoComplete="email"
-            autoFocus={isLogin}
-            className="w-full bg-white border border-black/20 rounded-xl px-4 py-3 text-black placeholder-neutral-400 focus:outline-none focus:border-black focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1 transition-colors"
+            autoFocus
+            className="w-full bg-white border border-black/20 rounded-2xl px-4 py-3 text-black placeholder-neutral-400 focus:outline-none focus:border-black focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1 transition-colors"
             required
           />
           <input
             type="password"
+            name="password"
             aria-label="Password"
             placeholder="Password"
-            autoComplete={isLogin ? "current-password" : "new-password"}
-            className="w-full bg-white border border-black/20 rounded-xl px-4 py-3 text-black placeholder-neutral-400 focus:outline-none focus:border-black focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1 transition-colors"
+            autoComplete="current-password"
+            className="w-full bg-white border border-black/20 rounded-2xl px-4 py-3 text-black placeholder-neutral-400 focus:outline-none focus:border-black focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-1 transition-colors"
             required
           />
 
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="brutal-btn-dark w-full flex items-center justify-center gap-2 mt-2"
+            disabled={isPending}
+            className="brutal-btn-dark w-full flex items-center justify-center gap-2 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isLogin ? "Sign In" : "Create Account"}
+            {isPending ? "Signing in…" : "Sign In"}
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -85,22 +94,22 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={() => router.push("/dashboard")}
-          className="w-full bg-[#24292e] text-white font-medium border-2 border-black rounded-xl px-4 py-3 mt-4 flex items-center justify-center gap-2 hover:bg-[#2b3137] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+          onClick={handleGoogle}
+          disabled={isPending}
+          className="w-full bg-white text-black font-medium border-2 border-black rounded-2xl px-4 py-3 mt-4 flex items-center justify-center gap-2 hover:bg-neutral-50 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Github className="w-5 h-5" />
-          Continue with GitHub
+          <Chrome className="w-5 h-5" />
+          Continue with Google
         </button>
 
         <div className="mt-8 text-center text-sm text-neutral-500">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
             className="text-black font-medium hover:underline transition-all"
           >
-            {isLogin ? "Sign up" : "Log in"}
-          </button>
+            Sign up
+          </Link>
         </div>
       </motion.div>
     </main>

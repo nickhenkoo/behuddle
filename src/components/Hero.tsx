@@ -38,19 +38,13 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-10"
         >
-          <Link href="#two-doors" className="brutal-btn-dark inline-block">
+          <Link href="#two-doors" className="btn-pill-dark inline-block !px-9 !py-3">
             Find a companion
           </Link>
         </motion.div>
       </div>
 
-      <div className="absolute bottom-8 left-8 md:left-16 text-xs text-neutral-400 font-light hidden md:block">
-        Free during beta. No credit card needed.
-      </div>
 
-      <div className="absolute bottom-8 right-8 md:right-16 text-xs text-neutral-400 font-light hidden md:block">
-        [Scroll to Explore]
-      </div>
     </section>
   );
 }
