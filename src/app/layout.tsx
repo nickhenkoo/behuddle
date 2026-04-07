@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import { Syne, DM_Sans } from 'next/font/google'
+import { Syne, DM_Sans, Geist } from 'next/font/google'
 import './globals.css'
 import { ReactNode } from 'react'
 import { ConsoleEgg } from '@/components/ConsoleEgg'
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const syne = Syne({
   subsets: ['latin'],
@@ -29,7 +32,7 @@ export default function RootLayout({
   children: ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className={cn("scroll-smooth", "font-sans", geist.variable)}>
       <body className={`${syne.variable} ${dmSans.variable} bg-texture antialiased min-h-screen relative`}>
         <ConsoleEgg />
         {children}
