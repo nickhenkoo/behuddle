@@ -17,51 +17,34 @@ Killer feature — **The Spark**: AI-generated explanation of the potential betw
 
 ## Current project state
 
-```
-src/
-├── app/
-│   ├── dashboard/
-│   │   └── page.tsx          ← initial dashboard layout exists, needs full implementation
-│   ├── login/
-│   │   ├── page.tsx          ← initial login page exists, needs full implementation
-│   │   └── globals.css
-│   ├── layout.tsx
-│   ├── page.tsx              ← landing page root
-│   ├── icon.png
-│   └── logo.png
-├── components/               ← landing page components (all exist)
-│   ├── CallToAction.tsx
-│   ├── ConsoleEgg.tsx
-│   ├── Footer.tsx
-│   ├── Hero.tsx
-│   ├── HowItWorks.tsx
-│   ├── Manifesto.tsx
-│   ├── Navbar.tsx
-│   ├── TwoDoors.tsx
-├── lib/
-│   └── utils.ts
-├── CLAUDE.md
-├── next.config.mjs
-├── tailwind.config.ts
-└── tsconfig.json
-```
+### Built ✅
 
-**What exists:**
-- [x] Landing page with all sections
-- [x] Login page (initial)
-- [x] Dashboard layout (shell)
-- [x] CLAUDE.md in root
+| Phase | Feature |
+|---|---|
+| 1 | Supabase DB schema migrated (all tables + RLS + triggers) |
+| 1 | Auth — login, register (email + Google OAuth PKCE), `/auth/callback` |
+| 1 | Onboarding 4-step: role → skills → motivation → status |
+| 1 | Dashboard layout — sidebar nav (desktop) + bottom nav (mobile) |
+| 2 | Ideas tab — project CRUD, slide-over form, likes, soft delete |
+| 2 | People tab — catalog, role filter, status dots, ProfileCard popup |
+| 2 | Community tab — posts (question/find/case), linked to project |
+| 3 | Matchmaking — SQL scoring (skills 50% + role 25% + availability 15% + activity 10%), +15% verified bonus |
+| 3 | Spark — Claude API (claude-sonnet-4-20250514) generates match text |
+| 3 | Matches UI — Connected / New / Waiting / Deferred groups, swipe actions |
+| 3 | Realtime chat — Supabase Realtime, optimistic messages, telegram-style grouping |
+| 4 | Settings — 5 tabs: Profile / Preview / Appearance / Plan / Account |
+| 5 | Globe tab — interactive 3D globe (globe.gl v2.45.3), dark political map style, country polygons, worldwide state/province borders via `pathsData`, all labels as HTML elements, user markers |
+| 6 | Unread badges in nav — red dot on Messages with real-time Realtime updates |
+| 6 | In-app toast notifications — new matches, new messages (sonner) |
+| 6 | Email digest (Resend) — weekly summary of top 3 matches, opt-in/out toggle |
 
-**What needs to be built:**
-- [ ] Supabase project created
-- [ ] Registration page (`/register`)
-- [ ] Onboarding flow (role → skills → motivation → status)
-- [ ] Dashboard — all tabs implemented
-- [ ] DB schema migrated
-- [ ] Matchmaking edge function
-- [ ] Realtime chat
-- [ ] Map tab
-- [ ] Community tab
+### Remaining ⬜
+
+| Phase | Feature |
+|---|---|
+| 5 | Nominatim geocoding (city → lat/lng) so real user dots appear on globe |
+| 5 | `map_users` SQL view (coordinates rounded to ~10km) |
+| 7 | GitHub verify → `is_verified`, spotlight project of the week, weekly question |
 
 ---
 
@@ -140,9 +123,9 @@ src/
 |---|---|---|
 | Frontend | Next.js 14 (App Router) | Already set up |
 | Database | Supabase (Postgres) | Auth, Realtime, Storage, Edge Functions |
-| Auth | Supabase Auth | Email/password + Google OAuth |
+| Auth | Supabase Auth | Magic link (OTP) + Google OAuth — no passwords |
 | AI | Claude API (claude-sonnet-4-20250514) | Spark text generation |
-| Email | Resend | Weekly digest, notifications |
+| Email | Resend + @react-email/render | Magic links, weekly digest, notifications |
 | Map | Mapbox GL JS | Interactive user map |
 | Geocoding | Nominatim (free) | City name → lat/lng on registration |
 | Hosting | Vercel | Edge runtime, deploy from GitHub |
@@ -449,16 +432,38 @@ create view map_users as
 ## Environment variables (.env.local)
 
 ```bash
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
+# Site URL (for auth redirects)
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Claude API (for Spark text generation)
 ANTHROPIC_API_KEY=sk-ant-...
 
+# Resend (magic links + weekly email digest)
 RESEND_API_KEY=re_...
 
-NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ...
+# Optional: Cron security token (for /api/cron/send-digest)
+CRON_SECRET=your-secret-token
+
+# Not used (kept for reference)
+# NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ...  ← using globe.gl instead
 ```
+
+**Required for full functionality:**
+- `NEXT_PUBLIC_SUPABASE_URL` ✅
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ⚠️ (for cron job to send digests)
+- `ANTHROPIC_API_KEY` ⚠️ (for Spark text)
+- `RESEND_API_KEY` ⚠️ (for magic links + email digest)
+- `SUPABASE_SERVICE_ROLE_KEY` ⚠️ (for admin.generateLink — required for magic link auth)
+- `NEXT_PUBLIC_SITE_URL` ✅
+
+**Optional:**
+- `CRON_SECRET` — Bearer token to protect cron endpoint (recommended for production)
 
 ---
 
@@ -480,13 +485,19 @@ NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ...
 
 - **Community** — no abstract feed. Every post must be linked to a project. Keeps content structured at small scale.
 - **Home tab** — no vanity stats ("12 new projects"). One specific urgent CTA instead.
-- **3D globe** — not doing. Flat map with dots for now, Mapbox on second iteration.
+- **Map** — using `globe.gl` v2.45.3 (3D interactive WebGL globe), not Mapbox. Globe card at `/dashboard/map`, `GlobeView.tsx` + `GlobeLoader.tsx` (ssr: false wrapper). Country fill from `public/countries.geojson`. State/province borders via `pathsData()` from Natural Earth 50m CDN. Animated city arcs removed. All text is HTML elements via `htmlElementsData` (NOT `labelsData()` 3D text — it ignores scalar color/size, looks "inserted"). `htmlAltitude` required or labels vanish at zoom. `polygonSideColor` must be transparent or dark bands appear at oblique angles. `pathStroke(null)` may fail — use `pathStroke(0.5)`. Visual style: ocean `#111111`, land `#1e1e1e`, bg `#0d0d0d`.
 - **AI matchmaking** — SQL only for first 2 weeks. Claude API added at week 5.
 - **Chat** — minimal. No channels, threads, reactions. Just dialogue.
 - **Coordinates** — rounded to ~10km. No exact address stored ever.
 - **`deferred` status** — "later" is not a rejection. Revisited after a week or on project update.
 - **Language** — English only. International from day one.
 - **Components** — current landing components stay as-is, get moved to `components/landing/` subfolder.
+- **Unread messages** — tracked via `message_read_at` column + `conversation_reads` table. Mark as read on conversation entry.
+- **Toast notifications** — using sonner library. New matches & messages trigger toasts globally via Realtime hooks.
+- **Email digest** — weekly via Resend, top 3 matches only. Opt-in/out in Settings. Cron endpoint at `/api/cron/send-digest`.
+- **Auth — no passwords** — login and signup use magic links only (+ Google OAuth). `loginWithOtp()` and `signUp()` call `supabase.auth.admin.generateLink()` with service role key, then send branded email via Resend + `@react-email/render`. `FROM_EMAIL` in `actions.ts` switches automatically: `onboarding@resend.dev` in dev (no domain verification needed), `contact@behuddle.com` in production. Before deploying: verify `behuddle.com` domain in Resend dashboard. Also disable Supabase's own email sending in Auth settings to avoid duplicate emails.
+- **Cookie consent** — stored in `localStorage['bh_cookie_consent']` as `{ status, expires }`. Accept TTL = 1 year, Decline TTL = 90 days. Banner only shows if no valid consent exists.
+- **Legal pages** — `/privacy`, `/terms`, `/cookies`, `/legal` under `src/app/(legal)/` route group with shared layout.
 
 ---
 
@@ -497,4 +508,80 @@ NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ...
 3. Install Supabase packages: `npm install @supabase/supabase-js @supabase/ssr`
 4. Wire Auth to existing `/login` page
 5. Build `/register` and `/onboarding`
+
+---
+
+## Design Context
+
+### Users
+Mixed audience — indie hackers, aspiring founders, students, and skilled contributors. What unites them: they want to build something real but can't do it alone. Ambitious but not corporate; they care about craft, not clout.
+
+### Brand Personality
+**Human · Focused · Honest** — no marketing fluff, direct and warm, feels like a real person built it.
+
+Emotional goal: **Calm & trusted.** Safe to share ideas, confident people are genuine, no noise.
+
+### Aesthetic Direction
+- **References:** Notion (editorial typography, generous whitespace), Linear (precise, craft-forward)
+- **Anti-references:** Generic SaaS (no teal/purple gradients, no dashboard templates), ProductHunt (no hype/upvote UI)
+- **Theme:** Light + Dark — both modes are first-class, no afterthought dark mode
+- **Palette:** Warm off-white bg, `#111111` fg, Indigo `#4F46E5` accent (sparingly), Emerald `#10B981` positive states
+- **Typography:** Syne (display/headings) + DM Sans (body) — hierarchy through type, not borders
+
+### Design Principles
+1. **Earn every pixel.** If an element can be removed without loss, remove it.
+2. **Calm is a feature.** No looping animations, no urgency theater, no hype language.
+3. **Typography does the heavy lifting.** Hierarchy through size, weight, spacing — not card containers.
+4. **Details are the brand.** Subtle unexpected touches (inverted corner fillets, faint decorative characters) make it feel handcrafted.
+5. **Both themes are first-class.** Design light and dark intentionally, not by inverting.
 6. Move components to `components/landing/`
+
+---
+
+## UI Design System & Recent Updates (Apr 2026)
+
+### Typography Stack
+- **Display/Headings:** `Bricolage Grotesque` (Google Fonts) — modern, bold grotesque for headlines
+- **Body/UI:** `Inter` — clean, highly legible
+- **Accent/Italic Emphasis:** `Instrument Serif` — elegant editorial italic for quotes and highlights
+
+### Color Palette
+- **Background:** `#f6f5f4` (warm off-white with subtle texture)
+- **Foreground/Primary:** `#1A1918` (soft near-black, not pure #000)
+- **Accent (Sage):** `#8a9a86` with variants:
+  - `sage-light`: `#a8b8a4`
+  - `sage-dark`: `#6c7c68`
+- **UI Borders:** `neutral-200/60` — very subtle, almost invisible
+- **Shadows:** Long, soft shadows using `rgba(26,25,24,0.08)` — never harsh blacks
+
+### Button Styles (CSS Classes)
+All buttons use `rounded-full` (pill shape) and consistent padding:
+
+- **`.btn-pill`** — Primary action, light bg with subtle shadow
+- **`.btn-pill-dark`** — Dark background `#1A1918`, white text, soft shadow on hover
+- **`.btn-pill-outline`** — Transparent with border, hover fills slightly
+
+Hover effects: subtle opacity change (`opacity-90`) and soft shadow bloom. **Avoid** `translate-y` transforms that cause layout shifts.
+
+### Key Components Reference
+
+#### Cookie Banner
+- Fixed position at bottom (`fixed bottom-0`)
+- Dark theme (`bg-[#1A1918]`) with white text
+- Two pill-shaped buttons: "Accept all" (filled white) and "Decline" (outlined)
+- X close button with subtle rotate animation on hover
+- Appears with 2s delay, animates in with `y: 100 → 0`
+
+#### Role Selection Cards (Visionary/Builder)
+- Large white cards with `rounded-[2rem]`
+- Dynamic spotlight effect following cursor (radial gradient)
+- Icon container inverts colors on hover (bg dark, icon white)
+- "Get started" text slot swaps to context-aware hover text ("Show your vision" / "Start building")
+- Subtle spring animation on hover (`y: -6`)
+
+### Animation Principles
+1. **Use Framer Motion for entrance:** `initial` + `whileInView` + `viewport={{ once: true }}`
+2. **Hover states:** CSS transitions for simple effects, `whileHover` only for micro-interactions
+3. **Exit animations:** Always provide `exit` prop in `AnimatePresence`
+4. **Timing:** 200-300ms for hovers, 400-600ms for entrances, `ease: [0.21, 0.47, 0.32, 0.98]` (smooth ease-out)
+5. **No layout thrashing:** Use `layout` prop sparingly, prefer `opacity` + `transform`

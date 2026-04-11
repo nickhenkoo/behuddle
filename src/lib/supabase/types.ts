@@ -24,6 +24,7 @@ export type Database = {
                     availability_hours: number | null
                     is_open_to_match: boolean
                     is_verified: boolean
+                    email_digest_opt_in: boolean
                     created_at: string
                     updated_at: string
                 }
@@ -41,8 +42,11 @@ export type Database = {
                     availability_hours?: number | null
                     is_open_to_match?: boolean
                     is_verified?: boolean
+                    email_digest_opt_in?: boolean
+                    updated_at?: string
                 }
                 Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+                Relationships: []
             }
             skills: {
                 Row: {
@@ -52,6 +56,7 @@ export type Database = {
                 }
                 Insert: { name: string; category?: string | null }
                 Update: Partial<Database['public']['Tables']['skills']['Insert']>
+                Relationships: []
             }
             profile_skills: {
                 Row: {
@@ -65,6 +70,7 @@ export type Database = {
                     level: 'learning' | 'mid' | 'strong'
                 }
                 Update: Partial<Database['public']['Tables']['profile_skills']['Insert']>
+                Relationships: []
             }
             projects: {
                 Row: {
@@ -95,6 +101,27 @@ export type Database = {
                     is_paused?: boolean
                 }
                 Update: Partial<Database['public']['Tables']['projects']['Insert']>
+                Relationships: []
+            }
+            project_likes: {
+                Row: {
+                    profile_id: string
+                    project_id: string
+                    created_at: string
+                }
+                Insert: { profile_id: string; project_id: string }
+                Update: Partial<Database['public']['Tables']['project_likes']['Insert']>
+                Relationships: []
+            }
+            project_skill_needs: {
+                Row: {
+                    project_id: string
+                    skill_id: number
+                    is_must_have: boolean
+                }
+                Insert: { project_id: string; skill_id: number; is_must_have?: boolean }
+                Update: Partial<Database['public']['Tables']['project_skill_needs']['Insert']>
+                Relationships: []
             }
             matches: {
                 Row: {
@@ -116,8 +143,11 @@ export type Database = {
                     score?: number | null
                     spark_text?: string | null
                     source?: 'ai' | 'map' | 'browse' | null
+                    status_a?: 'pending' | 'yes' | 'no' | 'deferred'
+                    status_b?: 'pending' | 'yes' | 'no' | 'deferred'
                 }
                 Update: Partial<Database['public']['Tables']['matches']['Insert']>
+                Relationships: []
             }
             conversations: {
                 Row: {
@@ -128,6 +158,7 @@ export type Database = {
                 }
                 Insert: { match_id: string; context?: string | null }
                 Update: Partial<Database['public']['Tables']['conversations']['Insert']>
+                Relationships: []
             }
             messages: {
                 Row: {
@@ -135,14 +166,31 @@ export type Database = {
                     conversation_id: string
                     sender_id: string
                     content: string
+                    message_read_at: string | null
                     created_at: string
                 }
                 Insert: {
                     conversation_id: string
                     sender_id: string
                     content: string
+                    message_read_at?: string | null
                 }
                 Update: Partial<Database['public']['Tables']['messages']['Insert']>
+                Relationships: []
+            }
+            conversation_reads: {
+                Row: {
+                    conversation_id: string
+                    user_id: string
+                    last_read_at: string
+                }
+                Insert: {
+                    conversation_id: string
+                    user_id: string
+                    last_read_at?: string
+                }
+                Update: Partial<Database['public']['Tables']['conversation_reads']['Insert']>
+                Relationships: []
             }
             posts: {
                 Row: {
@@ -163,6 +211,7 @@ export type Database = {
                     body?: string | null
                 }
                 Update: Partial<Database['public']['Tables']['posts']['Insert']>
+                Relationships: []
             }
             comments: {
                 Row: {
@@ -174,6 +223,7 @@ export type Database = {
                 }
                 Insert: { post_id: string; author_id: string; body: string }
                 Update: Partial<Database['public']['Tables']['comments']['Insert']>
+                Relationships: []
             }
             weekly_questions: {
                 Row: {
@@ -184,6 +234,7 @@ export type Database = {
                 }
                 Insert: { question: string; week_number: number; year: number }
                 Update: Partial<Database['public']['Tables']['weekly_questions']['Insert']>
+                Relationships: []
             }
             weekly_question_answers: {
                 Row: {
@@ -194,6 +245,7 @@ export type Database = {
                 }
                 Insert: { profile_id: string; question_id: number; answer?: string | null }
                 Update: Partial<Database['public']['Tables']['weekly_question_answers']['Insert']>
+                Relationships: []
             }
         }
         Views: {
@@ -203,12 +255,17 @@ export type Database = {
                     full_name: string | null
                     role: string | null
                     status: string
-                    is_verified: boolean
+                    avatar_url: string | null
                     lat: number | null
                     lng: number | null
+                    is_verified: boolean
                 }
+                Relationships: []
             }
         }
+        Functions: Record<string, never>
+        Enums: Record<string, never>
+        CompositeTypes: Record<string, never>
     }
 }
 

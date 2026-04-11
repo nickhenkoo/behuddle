@@ -1,15 +1,13 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    background-color: #F8F9FA;
-    color: #111111;
+    background-color: #F5F4F0;
+    color: #1C1F1B;
     overflow-x: hidden;
-    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-family: var(--font-inter), system-ui, sans-serif;
     font-size: 1rem;
     line-height: 1.6;
     font-kerning: normal;
@@ -22,7 +20,8 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-bricolage), system-ui, sans-serif;
+    color: var(--heading);
     line-height: 1.1;
     letter-spacing: -0.02em;
   }
@@ -98,25 +97,25 @@
     --sidebar-ring: oklch(0.556 0 0);
   }
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
-  html {
+  html, body {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
 
 .bg-texture {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.015'/%3E%3C/svg%3E");
 }
 
 /* ─── Button: light variant ─── */
 .btn-pill {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-2xl bg-white border border-black/10 text-neutral-700 text-sm font-medium transition-all duration-150 select-none;
+  @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-white border border-sage-light shadow-[0_2px_10px_rgba(0,0,0,0.02)] text-foreground text-[14px] font-medium transition-all duration-300 select-none;
 }
 
 .btn-pill:hover {
-  background-color: #f5f5f5;
-  border-color: rgba(0,0,0,0.16);
+  @apply border-sage shadow-[0_4px_14px_rgba(0,0,0,0.04)] bg-[#FAFAF8];
 }
 
 .btn-pill:active {
@@ -125,11 +124,11 @@
 
 /* ─── Button: dark variant ─── */
 .btn-pill-dark {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-2xl bg-neutral-950 text-white text-sm font-medium transition-all duration-150 select-none;
+  @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#1A1918] text-[#f6f5f4] shadow-[0_8px_32px_-4px_rgba(26,25,24,0.12)] text-[14px] font-medium transition-all duration-300 select-none;
 }
 
 .btn-pill-dark:hover {
-  background-color: #1a1a1a;
+  @apply bg-[#2a2928] shadow-[0_12px_40px_-4px_rgba(26,25,24,0.16)] opacity-90;
 }
 
 .btn-pill-dark:active {
@@ -137,9 +136,23 @@
   opacity: 0.92;
 }
 
+/* ─── Button: outline variant ─── */
+.btn-pill-outline {
+  @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-[#1A1918] bg-transparent text-[#1A1918] text-[14px] font-medium transition-all duration-300 select-none;
+}
+
+.btn-pill-outline:hover {
+  background-color: rgba(26, 25, 24, 0.06);
+}
+
+.btn-pill-outline:active {
+  transform: scale(0.97);
+}
+
 .btn-pill-dark:focus-visible,
+.btn-pill-outline:focus-visible,
 .btn-pill:focus-visible {
-  outline: 2px solid #4F46E5;
+  outline: 2px solid #363431;
   outline-offset: 3px;
 }
 

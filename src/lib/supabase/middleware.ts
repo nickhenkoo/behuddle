@@ -29,17 +29,17 @@ export async function updateSession(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // Auth guard — redirect unauthenticated users to login
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-        request.nextUrl.pathname.startsWith('/register')
-    const isDashboard = request.nextUrl.pathname.startsWith('/dashboard') ||
-        request.nextUrl.pathname.startsWith('/matches') ||
-        request.nextUrl.pathname.startsWith('/people') ||
-        request.nextUrl.pathname.startsWith('/ideas') ||
-        request.nextUrl.pathname.startsWith('/map') ||
-        request.nextUrl.pathname.startsWith('/community') ||
-        request.nextUrl.pathname.startsWith('/messages')
+    const { pathname } = request.nextUrl
+    const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register')
+    const isOnboarding = pathname.startsWith('/onboarding')
+    // Both auth routes must always pass through — no redirects during token processing
+    const isAuthCallback = pathname.startsWith('/auth/')
+    // All protected routes live under /dashboard
+    const isDashboard = pathname.startsWith('/dashboard')
 
-    if (!user && isDashboard) {
+    if (isAuthCallback) return supabaseResponse
+
+    if (!user && (isDashboard || isOnboarding)) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
