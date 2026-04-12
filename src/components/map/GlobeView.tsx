@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/clients';
 import type { MapUser } from '@/lib/supabase/types';
+import { roleLabel } from '@/lib/utils/roles';
 
 // ── Remote GeoJSON ─────────────────────────────────────────────────────────────
 const STATES_URL =
@@ -53,12 +55,14 @@ interface GlobePoint {
   oceanName?:   string;
   // country name
   countryName?: string;
+  pop_est?:     number;
   // city
   cityName?:    string;
   // user marker
   user?:        MapUser;
   count?:       number;
   users?:       MapUser[];
+  elRef?:       HTMLElement;
 }
 
 interface GlobeControls {
@@ -105,7 +109,8 @@ interface GlobeInstance {
   pathStroke:         (val: any) => GlobeInstance;
   pathTransitionDuration: (val: number) => GlobeInstance;
   // HTML layer — ALL text labels + user markers
-  htmlElementsData: (data: GlobePoint[]) => GlobeInstance;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  htmlElementsData: (data?: GlobePoint[]) => any;
   htmlLat:          (fn: (d: GlobePoint) => number) => GlobeInstance;
   htmlLng:          (fn: (d: GlobePoint) => number) => GlobeInstance;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,11 +215,11 @@ function makeOceanLabelEl(name: string): HTMLElement {
   const el = document.createElement('div');
   Object.assign(el.style, {
     fontFamily: "'DM Sans', Georgia, serif",
-    fontSize: '11px', fontWeight: '300', fontStyle: 'italic',
-    letterSpacing: '0.22em', textTransform: 'uppercase',
-    color: 'rgba(130,160,200,0.52)',
-    textShadow: '0 1px 6px rgba(0,0,20,0.7)',
+    fontSize: '12px', fontWeight: '300', fontStyle: 'italic',
+    letterSpacing: '0.25em', textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.15)',
     whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none',
+    transition: 'opacity 0.3s ease',
   });
   el.textContent = name;
   return el;
@@ -222,17 +227,17 @@ function makeOceanLabelEl(name: string): HTMLElement {
 
 /**
  * Country name label — flat HTML, styled like a real dark-map label.
- * NOT globe.gl 3D text. No italic, clear weight, subtle shadow.
  */
 function makeCountryLabelEl(name: string): HTMLElement {
   const el = document.createElement('div');
   Object.assign(el.style, {
     fontFamily: "'DM Sans', -apple-system, sans-serif",
-    fontSize: '11px', fontWeight: '500',
-    letterSpacing: '0.10em', textTransform: 'uppercase',
-    color: 'rgba(240,240,240,0.78)',
-    textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.7)',
+    fontSize: '10.5px', fontWeight: '600',
+    letterSpacing: '0.12em', textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.6)',
+    textShadow: '0 1px 4px rgba(0,0,0,0.8)',
     whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none',
+    transition: 'opacity 0.3s ease',
   });
   el.textContent = name;
   return el;
@@ -242,21 +247,23 @@ function makeCountryLabelEl(name: string): HTMLElement {
 function makeCityLabelEl(name: string): HTMLElement {
   const wrap = document.createElement('div');
   Object.assign(wrap.style, {
-    display: 'flex', alignItems: 'center', gap: '4px',
+    display: 'flex', alignItems: 'center', gap: '5px',
     pointerEvents: 'none', userSelect: 'none',
+    transition: 'opacity 0.3s ease',
   });
   const dot = document.createElement('div');
   Object.assign(dot.style, {
-    width: '3px', height: '3px', flexShrink: '0', borderRadius: '50%',
-    background: 'rgba(255,255,255,0.5)', boxShadow: '0 0 3px rgba(255,255,255,0.25)',
+    width: '4px', height: '4px', flexShrink: '0', borderRadius: '50%',
+    background: 'rgba(255,255,255,0.85)',
+    boxShadow: '0 0 8px rgba(255,255,255,0.5)',
   });
   const text = document.createElement('span');
   Object.assign(text.style, {
     fontFamily: "'DM Sans', -apple-system, sans-serif",
-    fontSize: '9px', fontWeight: '400', letterSpacing: '0.06em',
+    fontSize: '9.5px', fontWeight: '500', letterSpacing: '0.08em',
     textTransform: 'uppercase',
-    color: 'rgba(210,218,230,0.70)',
-    textShadow: '0 1px 4px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.6)',
+    color: 'rgba(255,255,255,0.5)',
+    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
     whiteSpace: 'nowrap',
   });
   text.textContent = name;
@@ -322,6 +329,20 @@ function htmlAlt(d: GlobePoint): number {
   return 0.03; // markers — above everything
 }
 
+// ── Full profile (fetched on tooltip open) ─────────────────────────────────────
+interface FullProfile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  role: string | null;
+  bio: string | null;
+  location: string | null;
+  status: string;
+  availability_hours: number | null;
+  is_verified: boolean;
+  profile_skills: { skills: { name: string } | null }[];
+}
+
 // ── Tooltip ────────────────────────────────────────────────────────────────────
 function UserTooltip({
   user, position, containerRef, onClose,
@@ -332,53 +353,187 @@ function UserTooltip({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const W = 220, H = 130;
-  const cw = containerRef.current?.clientWidth ?? 800;
-  const x  = Math.max(8, Math.min(position.x - W / 2, cw - W - 8));
-  const y  = Math.max(8, position.y - H - 16 < 8 ? position.y + 16 : position.y - H - 16);
+  const [profile, setProfile] = useState<FullProfile | null>(null);
+
+  useEffect(() => {
+    setProfile(null);
+    createClient()
+      .from('profiles')
+      .select('id, full_name, avatar_url, role, bio, location, status, availability_hours, is_verified, profile_skills(skills(name))')
+      .eq('id', user.id)
+      .single()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(({ data }) => { if (data) setProfile(data as any); });
+  }, [user.id]);
+
+  const W   = 280;
+  const GAP = 18; // gap between icon and card edge
+  const cw  = containerRef.current?.clientWidth  ?? 800;
+  const ch  = containerRef.current?.clientHeight ?? 600;
+
+  // Compute position ONCE (memo keyed on position, not profile) so card doesn't jump on load
+  const [pos] = useState(() => {
+    // Prefer left of click; fall back to right if no room
+    const xLeft  = position.x - W - GAP;
+    const xRight = position.x + GAP;
+    const finalX = xLeft >= 8 ? xLeft : Math.min(xRight, cw - W - 8);
+
+    // Vertically: center on click point, clamp inside container
+    const CARD_H = 280; // approximate max height
+    const rawY   = position.y - CARD_H / 2;
+    const finalY = Math.max(8, Math.min(rawY, ch - CARD_H - 8));
+
+    return { x: finalX, y: finalY };
+  });
+
+  const p = profile ?? user;
+  const skills = profile?.profile_skills
+    ?.map((ps) => ps.skills?.name)
+    .filter((n): n is string => Boolean(n))
+    .slice(0, 4) ?? [];
+
+  const STATUS_LABEL: Record<string, string> = {
+    open:                 'Open to match',
+    looking_for_designer: 'Looking for designer',
+    busy:                 'Busy',
+    away:                 'Away',
+  };
 
   return (
-    <div
-      className="absolute z-30 bg-white rounded-xl border border-neutral-200 shadow-xl p-4"
-      style={{ left: x, top: y, width: W }}
+    <motion.div
+      className="absolute bg-white rounded-2xl border border-neutral-200/80 shadow-[0_12px_48px_rgba(0,0,0,0.22)] overflow-hidden"
+      style={{ left: pos.x, top: pos.y, width: W, zIndex: 9999 }}
       onClick={(e) => e.stopPropagation()}
+      layout
+      initial={{ opacity: 0, scale: 0.92, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, y: 6 }}
+      transition={{ duration: 0.18, ease: [0.21, 0.47, 0.32, 0.98] }}
     >
-      <div className="flex items-center gap-3 mb-3">
+      {/* Header strip */}
+      <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+        {/* Avatar */}
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold shrink-0"
+          className="w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white text-[15px] font-bold overflow-hidden border-2 border-white shadow-sm"
           style={{ background: roleColor(user.role) }}
         >
-          {initials(user.full_name)}
+          {user.avatar_url
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+            : initials(user.full_name)
+          }
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-[13.5px] font-semibold text-neutral-900 truncate">
-              {user.full_name ?? 'Anonymous'}
+
+        {/* Name + meta */}
+        <div className="flex-1 min-w-0 pt-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-[14px] font-bold text-[#1A1918] leading-tight truncate">
+              {p.full_name ?? 'Anonymous'}
             </p>
             {user.is_verified && (
-              <svg className="w-3.5 h-3.5 text-indigo-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-              </svg>
+              <img
+                src="/icons/iconsax-star-3-acb2d2d1d45f-.svg"
+                alt="Verified"
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ filter: 'invert(75%) sepia(60%) saturate(500%) hue-rotate(10deg) brightness(1.1)' }}
+              />
             )}
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: statusColor(user.status) }} />
-            <span className="text-[11.5px] text-neutral-500 capitalize">{user.role ?? 'user'}</span>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                p.role === 'builder'
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}
+            >
+              {roleLabel(p.role)}
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: statusColor(user.status) }} />
+              <span className="text-[11px] text-neutral-500">
+                {STATUS_LABEL[user.status] ?? user.status}
+              </span>
+            </div>
           </div>
         </div>
-        <button onClick={onClose} className="text-neutral-300 hover:text-neutral-500 shrink-0">
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
             <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
           </svg>
         </button>
       </div>
-      <button
-        onClick={() => router.push(`/dashboard/messages?userId=${user.id}`)}
-        className="w-full bg-neutral-900 hover:bg-neutral-800 text-white text-[12.5px] font-medium rounded-lg py-2 transition-colors"
-      >
-        Send message
-      </button>
-    </div>
+
+      {/* Body */}
+      {!profile ? (
+        <div className="px-4 pb-4">
+          <div className="space-y-2 animate-pulse">
+            <div className="h-3 bg-neutral-100 rounded-full w-3/4" />
+            <div className="h-3 bg-neutral-100 rounded-full w-1/2" />
+          </div>
+        </div>
+      ) : (
+        <motion.div
+          className="px-4 pb-4 space-y-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+        >
+
+          {/* Bio */}
+          {profile.bio && (
+            <p className="text-[12.5px] text-neutral-500 leading-relaxed line-clamp-2">
+              {profile.bio}
+            </p>
+          )}
+
+          {/* Location + availability */}
+          <div className="flex items-center gap-3 text-[12px] text-neutral-400">
+            {profile.location && (
+              <span className="flex items-center gap-1">
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                  <circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                {profile.location}
+              </span>
+            )}
+            {profile.availability_hours && (
+              <span className="flex items-center gap-1">
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+                {profile.availability_hours}h/wk
+              </span>
+            )}
+          </div>
+
+          {/* Skills */}
+          {skills.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {skills.map((s) => (
+                <span key={s} className="text-[11px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Action */}
+          <button
+            onClick={() => router.push(`/dashboard/matches`)}
+            className="w-full bg-[#1A1918] hover:bg-neutral-800 text-white text-[12.5px] font-semibold rounded-full py-2.5 transition-colors mt-1"
+          >
+            View matches →
+          </button>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
@@ -389,6 +544,8 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
   const cleanupRef        = useRef<(() => void) | null>(null);
   /** Country label points — populated after GeoJSON loads */
   const countryHtmlRef    = useRef<GlobePoint[]>([]);
+  /** Always holds the latest fetched users so the globe init can use them even if data arrived first */
+  const usersRef          = useRef<MapUser[]>([]);
 
   const [users,        setUsers]        = useState<MapUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<MapUser | null>(null);
@@ -412,7 +569,12 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
       .from('map_users')
       .select('id, full_name, role, status, avatar_url, is_verified, lat, lng')
       .limit(500)
-      .then(({ data }) => { if (data) setUsers(data as MapUser[]); });
+      .then(({ data }) => {
+        if (data) {
+          usersRef.current = data as MapUser[];
+          setUsers(data as MapUser[]);
+        }
+      });
   }, []);
 
   // Init globe
@@ -435,28 +597,27 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
       const cv = document.createElement('canvas');
       cv.width = 2; cv.height = 2;
       const cx = cv.getContext('2d')!;
-      cx.fillStyle = '#111111';
+      cx.fillStyle = '#070b14'; // Deep dark ocean
       cx.fillRect(0, 0, 2, 2);
 
       const globe = Globe()(containerRef.current)
         .width(w).height(h)
         .globeImageUrl(cv.toDataURL())
         .backgroundImageUrl('')
-        .backgroundColor('#0d0d0d')
+        .backgroundColor('#070b14') // Match ocean and page background
         .showAtmosphere(true)
-        .atmosphereColor('rgba(200,210,230,0.07)')
+        .atmosphereColor('rgba(200,210,230,0.05)')
         .atmosphereAltitude(0.14)
         // ── Country fill polygons ─────────────────────────────
-        // Ocean = #111, land = #1e1e1e → clear visual separation
         .polygonsData([])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .polygonGeoJsonGeometry((d: any) => d.geometry)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .polygonCapColor((_d: any) => '#1e1e1e')
+        .polygonCapColor((_d: any) => '#131722') // Dark sleek landmass
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .polygonSideColor((_d: any) => 'rgba(0,0,0,0)')  // no side artifacts
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .polygonStrokeColor((_d: any) => 'rgba(255,255,255,0.22)')
+        .polygonStrokeColor((_d: any) => 'rgba(255,255,255,0.15)') // Subtle glowing borders
         .polygonAltitude(0.006)
         // ── State/province border paths ───────────────────────
         .pathsData([])
@@ -465,24 +626,25 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
         .pathPointLng((pt: [number, number]) => pt[1])
         .pathPointAlt(0.009)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .pathColor((_d: any) => 'rgba(170,182,198,0.52)')
+        .pathColor((_d: any) => 'rgba(255,255,255,0.06)')
         .pathStroke(0.5)
         .pathTransitionDuration(0)
         // ── HTML layer: ocean + country + city + user markers ──
-        // htmlAltitude lifts items above the surface — fixes disappearance at zoom
         .htmlElementsData([...OCEAN_GLOBE_POINTS, ...CITY_GLOBE_POINTS])
         .htmlLat((d: GlobePoint) => d.lat)
         .htmlLng((d: GlobePoint) => d.lng)
         .htmlAltitude((d: GlobePoint) => htmlAlt(d))
         .htmlElement((d: GlobePoint) => {
           const el = makeHtmlEl(d);
+          d.elRef = el; // Save reference for zoom-dependent opacity
+
           // Click handler only for user markers
           if (d.itemType === 'marker') {
             el.addEventListener('click', (e) => {
               e.stopPropagation();
               const ev = e as MouseEvent;
               if (d.isCluster) {
-                globeRef.current?.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.2 }, 600);
+                globeRef.current?.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.0 }, 600);
               } else if (d.user) {
                 const rect = containerRef.current?.getBoundingClientRect();
                 setTooltipPos({
@@ -495,6 +657,49 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
           }
           return el;
         });
+
+      // ── Zoom-dependent label visibility ───────────────────
+      let rafId: number;
+      const updateLabels = () => {
+        if (!active) return;
+        rafId = requestAnimationFrame(updateLabels);
+        if (!globeRef.current) return;
+
+        const pov = globeRef.current.pointOfView();
+        if (!pov) return;
+        const alt = pov.altitude;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const points = (globeRef.current as any).htmlElementsData() as GlobePoint[];
+        points.forEach((d) => {
+          if (!d.elRef) return;
+          
+          if (d.itemType === 'country') {
+            const pop = d.pop_est || 0;
+            if (pop > 50000000) {
+              // Large: always visible
+              d.elRef.style.opacity = '1';
+            } else if (pop > 10000000) {
+              // Medium: fade in between alt 2.0 and 1.5
+              const op = Math.max(0, Math.min(1, (2.0 - alt) / 0.5));
+              d.elRef.style.opacity = op.toString();
+            } else {
+              // Small: fade in between alt 1.4 and 1.0
+              const op = Math.max(0, Math.min(1, (1.4 - alt) / 0.4));
+              d.elRef.style.opacity = op.toString();
+            }
+          } else if (d.itemType === 'city') {
+            // Cities: fade in between alt 1.2 and 0.8
+            const op = Math.max(0, Math.min(1, (1.2 - alt) / 0.4));
+            d.elRef.style.opacity = op.toString();
+          } else if (d.itemType === 'ocean') {
+            // Oceans: fade out slightly when very close (alt < 1.0)
+            const op = Math.max(0, Math.min(1, alt / 1.0));
+            d.elRef.style.opacity = op.toString();
+          }
+        });
+      };
+      updateLabels();
 
       // ── Three.js lighting ─────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -544,9 +749,11 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
           const centroid = computeCentroid(f.geometry);
           const name     = getCountryName(f.properties);
           if (centroid && name) {
+            const pop = f.properties?.POP_EST ?? f.properties?.pop_est ?? 0;
             countryLabelPoints.push({
               lat: centroid.lat, lng: centroid.lng,
               isCluster: false, itemType: 'country', countryName: name,
+              pop_est: pop,
             });
           }
         }
@@ -571,8 +778,8 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
 
       globe.polygonsData(countryFeatures);
       globe.pathsData(statePaths);
-      // Rebuild HTML with country labels now available
-      rebuildHtml(globe, clusterUsers([]));
+      // Rebuild HTML with country labels + any users that already arrived
+      rebuildHtml(globe, clusterUsers(usersRef.current));
 
       // Resize
       const handleResize = () => {
@@ -581,6 +788,7 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
       };
       window.addEventListener('resize', handleResize);
       cleanupRef.current = () => {
+        cancelAnimationFrame(rafId);
         window.removeEventListener('resize', handleResize);
         globe._destructor?.();
       };
@@ -602,27 +810,33 @@ export default function GlobeView({ hideLegend }: { hideLegend?: boolean } = {})
   }, [users, rebuildHtml]);
 
   return (
-    <div className="relative w-full h-full bg-[#0d0d0d]" onClick={handleDismissTooltip}>
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="relative w-full h-full bg-[#070b14]" onClick={handleDismissTooltip}>
+      <div
+        ref={containerRef}
+        className="w-full h-full cursor-grab active:cursor-grabbing [&_canvas]:!cursor-inherit"
+      />
 
-      {selectedUser && (
-        <UserTooltip
-          user={selectedUser}
-          position={tooltipPos}
-          containerRef={containerRef}
-          onClose={handleDismissTooltip}
-        />
-      )}
+      <AnimatePresence>
+        {selectedUser && (
+          <UserTooltip
+            key={selectedUser.id}
+            user={selectedUser}
+            position={tooltipPos}
+            containerRef={containerRef}
+            onClose={handleDismissTooltip}
+          />
+        )}
+      </AnimatePresence>
 
       {!hideLegend && (
         <div className="absolute bottom-5 left-5 z-10 space-y-1.5 pointer-events-none">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#1D9E75]" />
-            <span className="text-[11.5px] text-white/40 font-medium">Builder</span>
+            <span className="text-[11.5px] text-white/40 font-medium">Visionary</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#378ADD]" />
-            <span className="text-[11.5px] text-white/40 font-medium">Contributor</span>
+            <span className="text-[11.5px] text-white/40 font-medium">Builder</span>
           </div>
         </div>
       )}

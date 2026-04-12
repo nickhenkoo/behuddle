@@ -23,15 +23,15 @@ export default async function DashboardHome() {
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-8 space-y-6">
+    <div className="w-full">
+      <div className="max-w-2xl mx-auto pt-4 pb-12 space-y-6">
 
         {/* Greeting */}
         <div>
-          <h1 className="font-display text-[24px] font-semibold tracking-tight text-neutral-900">
+          <h1 className="font-display text-[28px] font-bold tracking-tight text-[#1A1918]">
             Hey, {firstName}
           </h1>
-          <p className="text-[13.5px] text-neutral-500 mt-0.5">Here&apos;s what&apos;s happening.</p>
+          <p className="text-[15px] text-neutral-500 mt-1 font-medium">Here&apos;s what&apos;s happening.</p>
         </div>
 
         {/* Status bar */}

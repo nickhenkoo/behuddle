@@ -2,21 +2,20 @@ import GlobeLoader from '@/components/map/GlobeLoader';
 
 export default function MapPage() {
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="px-4 md:px-8 py-8">
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Page header — same position as other tabs */}
+      <div className="shrink-0 px-4 md:px-16 lg:px-28 pt-4 pb-3">
+        <h1 className="font-display text-[24px] font-semibold tracking-tight text-[#1A1918]">Globe</h1>
+        <p className="text-[13.5px] text-neutral-500 mt-0.5">
+          Visionaries &amp; builders around the world. Click a dot to connect.
+        </p>
+      </div>
 
-        {/* Header */}
-        <div className="max-w-2xl mb-6">
-          <h1 className="font-display text-[24px] font-semibold tracking-tight text-neutral-900">Globe</h1>
-          <p className="text-[13.5px] text-neutral-500 mt-0.5">
-            Builders &amp; contributors around the world. Click a dot to connect.
-          </p>
-        </div>
-
-        {/* Globe card — full column width, 2× taller */}
+      {/* Globe fills all remaining space */}
+      <div className="flex-1 min-h-0 px-4 md:px-16 lg:px-28 pb-4">
         <div
-          className="relative rounded-2xl overflow-hidden w-full"
-          style={{ background: '#070b14', height: 680 }}
+          className="relative rounded-2xl overflow-hidden w-full h-full"
+          style={{ background: '#070b14' }}
         >
           {/* Vignette — edge darkening for depth */}
           <div
@@ -32,7 +31,7 @@ export default function MapPage() {
             <GlobeLoader />
           </div>
 
-          {/* Legend — bottom left, on top of vignette */}
+          {/* Legend — bottom left */}
           <div className="absolute bottom-5 left-5 z-10 pointer-events-none space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#1D9E75]" />
@@ -49,7 +48,6 @@ export default function MapPage() {
             Drag · Scroll · Click
           </p>
         </div>
-
       </div>
     </div>
   );

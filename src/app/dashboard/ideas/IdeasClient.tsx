@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, X, Pencil, Trash2, Heart, ChevronDown, ChevronUp, Lightbulb
+  Plus, X, Heart, ChevronDown, ChevronUp, Lightbulb
 } from "lucide-react";
 import {
   createProject, updateProject, deleteProject, toggleProjectLike,
 } from "@/lib/supabase/actions";
+import { roleLabel } from "@/lib/utils/roles";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ interface Project {
   owner_id: string;
   is_paused?: boolean | null;
   created_at: string;
-  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  profiles?: { full_name: string | null; role?: string | null } | { full_name: string | null; role?: string | null }[] | null;
   project_likes?: { profile_id: string }[] | null;
   project_skill_needs?: SkillNeed[] | null;
 }
@@ -49,15 +50,15 @@ const STAGES = [
 ];
 
 const STAGE_COLORS: Record<string, string> = {
-  idea:      "bg-amber-50 text-amber-700 border-amber-200",
-  prototype: "bg-blue-50 text-blue-700 border-blue-200",
-  building:  "bg-indigo-50 text-indigo-700 border-indigo-200",
-  launched:  "bg-emerald-50 text-emerald-700 border-emerald-200",
+  idea:      "bg-amber-400 text-white",
+  prototype: "bg-blue-500 text-white",
+  building:  "bg-indigo-600 text-white",
+  launched:  "bg-emerald-500 text-white",
 };
 
 const CATEGORIES = ["engineering", "design", "business", "marketing", "other"];
 
-const inputCls = "w-full bg-neutral-50 hover:bg-white border border-neutral-200 hover:border-neutral-300 focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-100 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150";
+const inputCls = "w-full bg-white border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:border-black/[0.15] focus:border-black/[0.25] focus:ring-0 rounded-2xl px-4 py-3.5 text-[14px] text-[#1A1918] placeholder-neutral-400 outline-none transition-all duration-200";
 
 // ── Project form (create / edit) ──────────────────────────────────────────────
 
@@ -103,6 +104,10 @@ function ProjectForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) { setError("Title is required."); return; }
+    if (!form.description.trim()) { setError("Description is required."); return; }
+    if (!form.what_exists.trim()) { setError("Please specify what already exists."); return; }
+    if (!form.what_needed.trim()) { setError("Please specify what you need."); return; }
+    if (form.skill_ids.length === 0) { setError("Please select at least one skill."); return; }
     setError(null);
 
     start(async () => {
@@ -126,11 +131,11 @@ function ProjectForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
 
       {/* Title */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">Project name *</label>
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">Project name <span className="text-red-500">*</span></label>
         <input
           type="text"
           value={form.title}
@@ -142,18 +147,18 @@ function ProjectForm({
       </div>
 
       {/* Stage */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">Stage</label>
-        <div className="grid grid-cols-4 gap-1.5">
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">Stage <span className="text-red-500">*</span></label>
+        <div className="flex bg-black/[0.03] p-1.5 rounded-2xl gap-1">
           {STAGES.map((s) => (
             <button
               key={s.value}
               type="button"
               onClick={() => set("stage", s.value)}
-              className={`py-2 text-[12px] font-medium rounded-lg border transition-all duration-100 ${
+              className={`flex-1 py-2.5 text-[13px] font-bold rounded-xl transition-all duration-200 ${
                 form.stage === s.value
-                  ? "bg-neutral-900 border-neutral-900 text-white"
-                  : "bg-neutral-50 border-neutral-200 text-neutral-600 hover:border-neutral-300"
+                  ? "bg-white text-[#1A1918] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                  : "text-neutral-500 hover:text-[#1A1918] hover:bg-black/[0.02]"
               }`}
             >
               {s.label}
@@ -163,9 +168,9 @@ function ProjectForm({
       </div>
 
       {/* Description */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">
-          Description <span className="text-neutral-400 font-normal">(optional)</span>
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">
+          Description <span className="text-red-500">*</span>
         </label>
         <textarea
           value={form.description}
@@ -178,9 +183,9 @@ function ProjectForm({
       </div>
 
       {/* Domain */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">
-          Domain <span className="text-neutral-400 font-normal">(optional)</span>
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">
+          Domain <span className="text-neutral-400 font-normal ml-1">Optional</span>
         </label>
         <input
           type="text"
@@ -191,86 +196,90 @@ function ProjectForm({
         />
       </div>
 
-      {/* What exists */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">
-          What already exists <span className="text-neutral-400 font-normal">(optional)</span>
-        </label>
-        <textarea
-          value={form.what_exists}
-          onChange={(e) => set("what_exists", e.target.value)}
-          rows={2}
-          maxLength={300}
-          placeholder="Landing page, Figma mockup, MVP in progress…"
-          className={`${inputCls} resize-none`}
-        />
-      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* What exists */}
+        <div className="space-y-2">
+          <label className="block text-[13px] font-bold text-[#1A1918]">
+            Already exists? <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={form.what_exists}
+            onChange={(e) => set("what_exists", e.target.value)}
+            rows={2}
+            maxLength={300}
+            placeholder="Landing page, Figma mockup…"
+            className={`${inputCls} resize-none`}
+          />
+        </div>
 
-      {/* What needed */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">
-          What do you need <span className="text-neutral-400 font-normal">(optional)</span>
-        </label>
-        <textarea
-          value={form.what_needed}
-          onChange={(e) => set("what_needed", e.target.value)}
-          rows={2}
-          maxLength={300}
-          placeholder="A frontend dev who can take Figma to React, a designer for the mobile app…"
-          className={`${inputCls} resize-none`}
-        />
+        {/* What needed */}
+        <div className="space-y-2">
+          <label className="block text-[13px] font-bold text-[#1A1918]">
+            What do you need? <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={form.what_needed}
+            onChange={(e) => set("what_needed", e.target.value)}
+            rows={2}
+            maxLength={300}
+            placeholder="A frontend dev, designer…"
+            className={`${inputCls} resize-none`}
+          />
+        </div>
       </div>
 
       {/* Skills needed */}
-      <div className="space-y-2">
-        <p className="text-[12.5px] font-medium text-neutral-600">Skills needed</p>
-        {CATEGORIES.map((cat) => {
-          const catSkills = skills.filter((s) => s.category === cat);
-          if (!catSkills.length) return null;
-          return (
-            <div key={cat}>
-              <p className="text-[10.5px] font-semibold text-neutral-400 uppercase tracking-widest mb-1.5">{cat}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {catSkills.map((skill) => {
-                  const active = form.skill_ids.includes(skill.id);
-                  return (
-                    <button
-                      key={skill.id}
-                      type="button"
-                      onClick={() => toggleSkill(skill.id)}
-                      className={`text-[12px] px-2.5 py-1 rounded-lg border transition-all duration-100 ${
-                        active
-                          ? "border-neutral-900 bg-neutral-900 text-white"
-                          : "border-neutral-200 bg-neutral-50 hover:border-neutral-300 text-neutral-600"
-                      }`}
-                    >
-                      {skill.name}
-                    </button>
-                  );
-                })}
+      <div className="space-y-3 pt-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">Skills needed <span className="text-red-500">*</span></label>
+        <div className="bg-white border border-black/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.02)] rounded-[24px] p-5 space-y-4">
+          {CATEGORIES.map((cat) => {
+            const catSkills = skills.filter((s) => s.category === cat);
+            if (!catSkills.length) return null;
+            return (
+              <div key={cat}>
+                <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-[0.06em] mb-2.5">{cat}</p>
+                <div className="flex flex-wrap gap-2">
+                  {catSkills.map((skill) => {
+                    const active = form.skill_ids.includes(skill.id);
+                    return (
+                      <button
+                        key={skill.id}
+                        type="button"
+                        onClick={() => toggleSkill(skill.id)}
+                        className={`text-[12.5px] font-medium px-3.5 py-1.5 rounded-full border transition-all duration-200 ${
+                          active
+                            ? "border-[#1A1918] bg-[#1A1918] text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+                            : "border-black/[0.08] bg-transparent hover:bg-black/[0.02] text-neutral-600"
+                        }`}
+                      >
+                        {skill.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {error && (
-        <p className="text-[12.5px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+        <p className="text-[13px] font-medium text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">{error}</p>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-1 border-t border-neutral-100">
+      <div className="flex items-center justify-between pt-6 mt-4 border-t border-black/[0.04]">
         <button
           type="button"
           onClick={onClose}
-          className="text-[13px] text-neutral-500 hover:text-neutral-700 transition-colors px-2"
+          className="px-5 py-3 rounded-2xl text-[14px] font-bold text-neutral-500 hover:bg-black/[0.03] hover:text-[#1A1918] transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="ml-auto bg-neutral-900 hover:bg-neutral-800 text-white text-[13.5px] font-medium rounded-xl px-5 py-2.5 transition-all active:scale-[0.99] disabled:opacity-50"
+          className="btn-pill-dark px-8 py-3 text-[14px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] disabled:opacity-50"
         >
           {isPending ? "Saving…" : editId ? "Save changes" : "Create project"}
         </button>
@@ -314,23 +323,32 @@ function ProjectCard({
     start(async () => { await toggleProjectLike(project.id); });
   };
 
+  // Stage accent left border color
+  const STAGE_ACCENT: Record<string, string> = {
+    idea:      "border-l-amber-400",
+    prototype: "border-l-blue-400",
+    building:  "border-l-indigo-500",
+    launched:  "border-l-emerald-500",
+  };
+  const accentBorder = project.stage ? (STAGE_ACCENT[project.stage] ?? "border-l-neutral-200") : "border-l-neutral-200";
+
   return (
-    <div className={`bg-white border rounded-xl transition-all duration-150 ${
-      isOwn ? "border-neutral-300" : "border-neutral-200/80 hover:border-neutral-300"
+    <div className={`bg-white border border-l-[3px] rounded-2xl transition-all duration-200 ${accentBorder} ${
+      isOwn ? "border-neutral-200" : "border-neutral-150 hover:border-neutral-300 hover:shadow-[0_4px_16px_rgba(26,25,24,0.05)]"
     }`}>
-      <div className="px-4 py-4">
+      <div className="px-5 py-4">
         {/* Header row */}
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h3 className="text-[14px] font-semibold text-neutral-900 leading-snug">{project.title}</h3>
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              <h3 className="text-[15px] font-bold text-[#1A1918] leading-snug">{project.title}</h3>
               {project.stage && (
-                <span className={`text-[10.5px] px-2 py-0.5 rounded-full border font-medium ${STAGE_COLORS[project.stage] ?? "bg-neutral-100 text-neutral-500 border-neutral-200"}`}>
+                <span className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold shadow-sm ${STAGE_COLORS[project.stage] ?? "bg-neutral-100 text-neutral-500"}`}>
                   {STAGES.find((s) => s.value === project.stage)?.label ?? project.stage}
                 </span>
               )}
               {project.is_paused && (
-                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-400 border border-neutral-200 font-medium">paused</span>
+                <span className="text-[10.5px] px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-400 border border-neutral-200 font-medium">paused</span>
               )}
             </div>
 
@@ -339,9 +357,9 @@ function ProjectCard({
             )}
 
             {project.what_needed && (
-              <p className="text-[12.5px] text-indigo-600 mt-1.5 font-medium">
-                → {project.what_needed}
-              </p>
+              <span className="inline-flex mt-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2.5 py-0.5 text-[12px] font-medium">
+                {project.what_needed}
+              </span>
             )}
           </div>
 
@@ -351,18 +369,18 @@ function ProjectCard({
               <button
                 type="button"
                 onClick={() => onEdit(project)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-neutral-100 transition-colors"
                 title="Edit"
               >
-                <Pencil className="w-3.5 h-3.5" />
+                <img src="/icons/edit-2.svg" alt="Edit" className="w-3.5 h-3.5 brightness-0 opacity-40 hover:opacity-70" />
               </button>
               <button
                 type="button"
                 onClick={() => onDelete(project.id)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
                 title="Delete"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <img src="/icons/trash-square.svg" alt="Delete" className="w-3.5 h-3.5" style={{ filter: "invert(35%) sepia(80%) saturate(400%) hue-rotate(320deg) opacity(0.7)" }} />
               </button>
             </div>
           )}
@@ -372,10 +390,10 @@ function ProjectCard({
         {skillNeeds.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {skillNeeds.slice(0, 4).map((sn) => (
-              <span key={sn.skill_id} className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+              <span key={sn.skill_id} className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
                 sn.is_must_have
-                  ? "bg-indigo-50 text-indigo-600 border-indigo-200"
-                  : "bg-neutral-50 text-neutral-500 border-neutral-200"
+                  ? "bg-indigo-600 text-white shadow-[0_1px_4px_rgba(79,70,229,0.25)]"
+                  : "bg-neutral-100 text-neutral-600 border border-neutral-200"
               }`}>
                 {sn.skills?.name ?? `skill_${sn.skill_id}`}
               </span>
@@ -387,10 +405,22 @@ function ProjectCard({
         )}
 
         {/* Footer row */}
-        <div className="flex items-center gap-3 mt-3">
-          {/* By */}
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-neutral-50">
+          {/* By + role badge */}
           {!isOwn && owner?.full_name && (
-            <span className="text-[12px] text-neutral-400">by {owner.full_name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] text-neutral-400">by {owner.full_name}</span>
+              {owner.role && (
+                <span className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold px-3 py-0.5 rounded-full tracking-wide ${
+                  owner.role === "builder"
+                    ? "bg-indigo-600 text-white shadow-[0_2px_8px_rgba(79,70,229,0.4)]"
+                    : "bg-emerald-600 text-white shadow-[0_2px_8px_rgba(16,185,129,0.4)]"
+                }`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" />
+                  {roleLabel(owner.role)}
+                </span>
+              )}
+            </div>
           )}
           {project.domain && (
             <span className="text-[12px] text-neutral-400">{project.domain}</span>
@@ -471,7 +501,7 @@ function DeleteConfirm({ projectId, onCancel }: { projectId: string; onCancel: (
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white rounded-2xl border border-neutral-200 shadow-xl w-full max-w-sm p-5"
       >
-        <h3 className="font-display text-[17px] font-semibold text-neutral-900 mb-1.5">Delete project?</h3>
+        <h3 className="font-display text-[17px] font-semibold text-[#1A1918] mb-1.5">Delete project?</h3>
         <p className="text-[13.5px] text-neutral-500 mb-5">
           The project will be hidden from the community. This can&apos;t be undone.
         </p>
@@ -500,7 +530,7 @@ function SlideOver({ title, children, onClose }: {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -510,18 +540,18 @@ function SlideOver({ title, children, onClose }: {
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="relative z-10 w-full max-w-md bg-white shadow-2xl flex flex-col h-full"
+        className="relative z-10 w-full max-w-xl bg-[#fcfcfc] shadow-[-12px_0_48px_rgba(0,0,0,0.12)] flex flex-col h-full sm:rounded-l-[32px] overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
-          <h2 className="font-display text-[17px] font-semibold text-neutral-900">{title}</h2>
-          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+        <div className="flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-black/[0.04] shrink-0 bg-white">
+          <h2 className="font-display text-[18px] sm:text-[20px] font-bold text-[#1A1918]">{title}</h2>
+          <button type="button" onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-black/[0.03] hover:bg-black/[0.06] text-neutral-500 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-8 custom-scrollbar">
           {children}
         </div>
       </motion.div>
@@ -556,19 +586,19 @@ export default function IdeasClient({
     : undefined;
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
+    <div className="w-full">
+      <div className="max-w-2xl mx-auto pt-4 pb-12">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-[24px] font-semibold tracking-tight text-neutral-900">Ideas</h1>
+            <h1 className="font-display text-[24px] font-semibold tracking-tight text-[#1A1918]">Ideas</h1>
             <p className="text-[13.5px] text-neutral-500 mt-0.5">Projects looking for contributors.</p>
           </div>
           <button
             type="button"
             onClick={() => setPanel({ type: "create" })}
-            className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-[13px] font-medium rounded-xl px-4 py-2.5 transition-all active:scale-[0.99]"
+            className="flex items-center gap-2 btn-pill-dark"
           >
             <Plus className="w-4 h-4" />
             New project
@@ -623,14 +653,14 @@ export default function IdeasClient({
             <div className="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center mb-4">
               <Lightbulb className="w-6 h-6 text-neutral-400" />
             </div>
-            <h3 className="font-display text-[17px] font-semibold text-neutral-900 mb-2">No projects yet</h3>
+            <h3 className="font-display text-[17px] font-semibold text-[#1A1918] mb-2">No projects yet</h3>
             <p className="text-[13.5px] text-neutral-500 max-w-xs mb-5">
               Share your idea and find the right people to build it with.
             </p>
             <button
               type="button"
               onClick={() => setPanel({ type: "create" })}
-              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-[13px] font-medium rounded-xl px-4 py-2.5 transition-all"
+              className="flex items-center gap-2 btn-pill-dark"
             >
               <Plus className="w-4 h-4" />
               Post your first project

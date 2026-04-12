@@ -56,7 +56,7 @@ export default async function ConversationPage({
   return (
     <div className="flex flex-col h-screen md:h-[calc(100vh)] pb-0">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-neutral-200/80 bg-white shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-black/[0.04] bg-white shrink-0">
         <Link href="/dashboard/messages" className="text-neutral-400 hover:text-neutral-700 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -68,7 +68,7 @@ export default async function ConversationPage({
           }
         </div>
         <div>
-          <p className="text-[14px] font-semibold text-neutral-900 leading-tight">{other?.full_name ?? "Someone"}</p>
+          <p className="text-[14px] font-semibold text-[#1A1918] leading-tight">{other?.full_name ?? "Someone"}</p>
           {conv.context && <p className="text-[11.5px] text-neutral-400 leading-tight">{conv.context}</p>}
         </div>
       </div>

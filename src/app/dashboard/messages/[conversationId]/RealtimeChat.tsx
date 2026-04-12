@@ -45,8 +45,9 @@ export default function RealtimeChat({
   useEffect(() => {
     const supabase = createClient();
 
+    const instanceId = Math.random().toString(36).slice(2, 7);
     const channel = supabase
-      .channel(`conversation:${conversationId}`)
+      .channel(`conversation:${conversationId}-${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -135,8 +136,8 @@ export default function RealtimeChat({
                   key={msg.id}
                   className={`max-w-[75%] px-3.5 py-2 text-[13.5px] leading-relaxed ${
                     isMe
-                      ? "bg-neutral-900 text-white"
-                      : "bg-white border border-neutral-200 text-neutral-900"
+                      ? "bg-[#1A1918] text-white shadow-sm"
+                      : "bg-white text-[#1A1918] shadow-sm border border-black/[0.02]"
                   } ${
                     group.msgs.length === 1
                       ? isMe ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
@@ -160,7 +161,7 @@ export default function RealtimeChat({
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-neutral-200/80 bg-white shrink-0">
+      <div className="px-4 py-3 border-t border-black/[0.04] bg-white shrink-0">
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
@@ -181,7 +182,7 @@ export default function RealtimeChat({
             type="button"
             onClick={send}
             disabled={!text.trim() || isPending}
-            className="w-9 h-9 flex items-center justify-center bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="w-9 h-9 flex items-center justify-center bg-[#1A1918] text-white rounded-xl hover:bg-black/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
             <Send className="w-4 h-4" />
           </button>

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile, ensureSkills } from "@/lib/supabase/actions";
+import { LocationPicker, type LocationValue } from "@/components/ui/LocationPicker";
+import { roleLabel } from "@/lib/utils/roles";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,7 +55,7 @@ function StepRole({ value, onChange }: { value: string | null; onChange: (v: "bu
                 : "border-neutral-200 bg-neutral-50 hover:border-neutral-300 hover:bg-white text-neutral-700"
             }`}
           >
-            <div className="font-medium text-[14px] capitalize">{role}</div>
+            <div className="font-medium text-[14px]">{roleLabel(role)}</div>
             <div className={`text-[12.5px] mt-0.5 ${active ? "text-neutral-300" : "text-neutral-500"}`}>
               {role === "builder"
                 ? "I have an idea and need people to build it with"
@@ -209,10 +211,10 @@ function StepBio({
 }
 
 function StepStatus({
-  status, hours, location, onStatus, onHours, onLocation,
+  status, hours, locValue, onStatus, onHours, onLocValue,
 }: {
-  status: string; hours: number; location: string;
-  onStatus: (v: string) => void; onHours: (v: number) => void; onLocation: (v: string) => void;
+  status: string; hours: number; locValue: LocationValue;
+  onStatus: (v: string) => void; onHours: (v: number) => void; onLocValue: (v: LocationValue) => void;
 }) {
   return (
     <div className="space-y-5">
@@ -262,14 +264,12 @@ function StepStatus({
 
       <div className="space-y-1.5">
         <label className="block text-[12.5px] font-medium text-neutral-600">
-          City <span className="text-neutral-400 font-normal">(optional)</span>
+          City <span className="text-neutral-400 font-normal">(optional — used to show you on the Globe)</span>
         </label>
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => onLocation(e.target.value)}
-          placeholder="e.g. Berlin, Tokyo, Remote"
-          className="w-full bg-neutral-50 hover:bg-white border border-neutral-200 hover:border-neutral-300 focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-100 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150"
+        <LocationPicker
+          value={locValue}
+          onChange={onLocValue}
+          inputClassName="w-full bg-neutral-50 hover:bg-white border border-neutral-200 hover:border-neutral-300 focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-100 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150"
         />
       </div>
     </div>
@@ -297,7 +297,7 @@ export default function OnboardingClient({ skills }: { skills: Skill[] }) {
   const [dir, setDir] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [location, setLocation] = useState("");
+  const [locValue, setLocValue] = useState<LocationValue>({ location: "", lat: null, lng: null });
   const [customSkills, setCustomSkills] = useState<string[]>([]);
 
   const [form, setForm] = useState<FormState>({
@@ -332,7 +332,8 @@ export default function OnboardingClient({ skills }: { skills: Skill[] }) {
         availability_hours: form.availability_hours,
         is_open_to_match: true,
         skill_ids: [...form.skill_ids, ...customIds],
-        ...(location ? { location } : {}),
+        ...(locValue.location ? { location: locValue.location } : {}),
+        ...(locValue.lat != null ? { lat: locValue.lat, lng: locValue.lng } : {}),
       });
       if (!result?.success) { setError('error' in result ? result.error : 'Failed'); return; }
       router.push("/dashboard");
@@ -408,10 +409,10 @@ export default function OnboardingClient({ skills }: { skills: Skill[] }) {
                 )}
                 {step === 4 && (
                   <StepStatus
-                    status={form.status} hours={form.availability_hours} location={location}
+                    status={form.status} hours={form.availability_hours} locValue={locValue}
                     onStatus={(v) => setForm((f) => ({ ...f, status: v }))}
                     onHours={(v) => setForm((f) => ({ ...f, availability_hours: v }))}
-                    onLocation={setLocation}
+                    onLocValue={setLocValue}
                   />
                 )}
               </motion.div>

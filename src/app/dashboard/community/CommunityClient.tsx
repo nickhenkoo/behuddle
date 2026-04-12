@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Globe } from "lucide-react";
 import { createPost } from "@/lib/supabase/actions";
@@ -32,7 +32,7 @@ const TYPE_BADGE: Record<string, string> = {
   case:      "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
 
-const inputCls = "w-full bg-neutral-50 hover:bg-white border border-neutral-200 hover:border-neutral-300 focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-100 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150";
+const inputCls = "w-full bg-white border border-black/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:border-black/[0.15] focus:border-black/[0.25] focus:ring-0 rounded-2xl px-4 py-3.5 text-[14px] text-[#1A1918] placeholder-neutral-400 outline-none transition-all duration-200";
 
 // ── Post form ─────────────────────────────────────────────────────────────────
 
@@ -43,10 +43,23 @@ function PostForm({ myProjects, onClose }: { myProjects: Project[]; onClose: () 
   const [projectId, setProjectId] = useState<string>(myProjects[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, start] = useTransition();
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { setError("Title is required."); return; }
+    if (!body.trim()) { setError("Details are required."); return; }
     setError(null);
     start(async () => {
       const result = await createPost({
@@ -61,32 +74,32 @@ function PostForm({ myProjects, onClose }: { myProjects: Project[]; onClose: () 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Type */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">Post type</label>
-        <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">Post type <span className="text-red-500">*</span></label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {TYPE_OPTIONS.map((t) => (
             <button
               key={t.value}
               type="button"
               onClick={() => setType(t.value)}
-              className={`py-2.5 px-2 text-center rounded-xl border transition-all duration-100 ${
+              className={`flex flex-col items-start px-4 py-3.5 text-left rounded-2xl border transition-all duration-200 ${
                 type === t.value
-                  ? "bg-neutral-900 border-neutral-900 text-white"
-                  : "bg-neutral-50 border-neutral-200 text-neutral-600 hover:border-neutral-300"
+                  ? "bg-white border-[#1A1918] shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+                  : "bg-black/[0.02] border-transparent hover:bg-black/[0.04]"
               }`}
             >
-              <p className="text-[12.5px] font-medium">{t.label}</p>
-              <p className={`text-[10.5px] mt-0.5 ${type === t.value ? "text-neutral-400" : "text-neutral-400"}`}>{t.desc}</p>
+              <p className={`text-[13.5px] font-bold ${type === t.value ? "text-[#1A1918]" : "text-neutral-600"}`}>{t.label}</p>
+              <p className="text-[11.5px] font-medium text-neutral-500 mt-1">{t.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
       {/* Title */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">Title *</label>
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">Title <span className="text-red-500">*</span></label>
         <input
           type="text"
           value={title}
@@ -103,14 +116,14 @@ function PostForm({ myProjects, onClose }: { myProjects: Project[]; onClose: () 
       </div>
 
       {/* Body */}
-      <div className="space-y-1.5">
-        <label className="block text-[12.5px] font-medium text-neutral-600">
-          Details <span className="text-neutral-400 font-normal">(optional)</span>
+      <div className="space-y-2">
+        <label className="block text-[13px] font-bold text-[#1A1918]">
+          Details <span className="text-red-500">*</span>
         </label>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={4}
+          rows={5}
           maxLength={2000}
           placeholder="Add context, share what you've already tried, or describe the situation…"
           className={`${inputCls} resize-none`}
@@ -119,33 +132,71 @@ function PostForm({ myProjects, onClose }: { myProjects: Project[]; onClose: () 
 
       {/* Linked project */}
       {myProjects.length > 0 && (
-        <div className="space-y-1.5">
-          <label className="block text-[12.5px] font-medium text-neutral-600">Linked project</label>
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">No project</option>
-            {myProjects.map((p) => (
-              <option key={p.id} value={p.id}>{p.title}</option>
-            ))}
-          </select>
+        <div className="space-y-2" ref={dropdownRef}>
+          <label className="block text-[13px] font-bold text-[#1A1918]">Linked project</label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+              className={`${inputCls} text-left flex items-center justify-between`}
+            >
+              <span className={projectId ? "text-[#1A1918]" : "text-neutral-400"}>
+                {projectId ? myProjects.find((p) => p.id === projectId)?.title : "No project"}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${isProjectDropdownOpen ? 'rotate-180' : ''}`}>
+                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="#1A1918" strokeOpacity="0.4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            <AnimatePresence>
+              {isProjectDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -5, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute z-50 w-full mt-2 bg-white border border-black/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-2xl py-2 max-h-60 overflow-y-auto custom-scrollbar"
+                >
+                  <button
+                    type="button"
+                    onClick={() => { setProjectId(""); setIsProjectDropdownOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-[13.5px] transition-colors ${!projectId ? 'bg-black/[0.03] font-semibold text-[#1A1918]' : 'text-neutral-600 hover:bg-black/[0.02] hover:text-[#1A1918]'}`}
+                  >
+                    No project
+                  </button>
+                  {myProjects.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { setProjectId(p.id); setIsProjectDropdownOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-[13.5px] transition-colors ${projectId === p.id ? 'bg-black/[0.03] font-semibold text-[#1A1918]' : 'text-neutral-600 hover:bg-black/[0.02] hover:text-[#1A1918]'}`}
+                    >
+                      {p.title}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       )}
 
       {error && (
-        <p className="text-[12.5px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+        <p className="text-[13px] font-medium text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">{error}</p>
       )}
 
-      <div className="flex items-center gap-2 pt-1 border-t border-neutral-100">
-        <button type="button" onClick={onClose} className="text-[13px] text-neutral-500 hover:text-neutral-700 transition-colors px-2">
+      <div className="flex items-center justify-between pt-6 mt-4 border-t border-black/[0.04]">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-5 py-3 rounded-2xl text-[14px] font-bold text-neutral-500 hover:bg-black/[0.03] hover:text-[#1A1918] transition-colors"
+        >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="ml-auto bg-neutral-900 hover:bg-neutral-800 text-white text-[13.5px] font-medium rounded-xl px-5 py-2.5 transition-all active:scale-[0.99] disabled:opacity-50"
+          className="btn-pill-dark px-8 py-3 text-[14px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] disabled:opacity-50 transition-all active:scale-[0.99]"
         >
           {isPending ? "Posting…" : "Publish"}
         </button>
@@ -161,7 +212,7 @@ function PostCard({ post }: { post: Post }) {
   const project = Array.isArray(post.projects) ? post.projects[0] : post.projects;
 
   return (
-    <div className="bg-white border border-neutral-200/80 rounded-xl px-4 py-4 hover:border-neutral-300 transition-colors">
+    <div className="bg-white rounded-[24px] px-6 py-5 shadow-[0_4px_24px_rgba(26,25,24,0.03)] border border-black/[0.02] hover:shadow-[0_8px_32px_rgba(26,25,24,0.06)] hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center gap-2 mb-2">
         {post.type && (
           <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${TYPE_BADGE[post.type] ?? "bg-neutral-100 text-neutral-500 border-neutral-200"}`}>
@@ -173,7 +224,7 @@ function PostCard({ post }: { post: Post }) {
         )}
       </div>
 
-      <h3 className="text-[14px] font-semibold text-neutral-900 leading-snug">{post.title}</h3>
+      <h3 className="text-[14px] font-semibold text-[#1A1918] leading-snug">{post.title}</h3>
 
       {post.body && (
         <p className="text-[13px] text-neutral-500 mt-1.5 line-clamp-3 leading-relaxed">{post.body}</p>
@@ -213,18 +264,18 @@ export default function CommunityClient({ posts, myProjects }: { posts: Post[]; 
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
+    <div className="w-full">
+      <div className="max-w-2xl mx-auto pt-4 pb-12">
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-[24px] font-semibold tracking-tight text-neutral-900">Community</h1>
+            <h1 className="font-display text-[24px] font-semibold tracking-tight text-[#1A1918]">Community</h1>
             <p className="text-[13.5px] text-neutral-500 mt-0.5">Questions and case studies tied to real projects.</p>
           </div>
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-[13px] font-medium rounded-xl px-4 py-2.5 transition-all active:scale-[0.99]"
+            className="flex items-center gap-2 btn-pill-dark"
           >
             <Plus className="w-4 h-4" />
             New post
@@ -236,14 +287,14 @@ export default function CommunityClient({ posts, myProjects }: { posts: Post[]; 
             <div className="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center mb-4">
               <Globe className="w-6 h-6 text-neutral-400" />
             </div>
-            <h3 className="font-display text-[17px] font-semibold text-neutral-900 mb-2">Nothing here yet</h3>
+            <h3 className="font-display text-[17px] font-semibold text-[#1A1918] mb-2">Nothing here yet</h3>
             <p className="text-[13.5px] text-neutral-500 max-w-xs mb-5">
               Share a question, post what you&apos;re looking for, or write up a lesson from your project.
             </p>
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-[13px] font-medium rounded-xl px-4 py-2.5 transition-all"
+              className="flex items-center gap-2 btn-pill-dark"
             >
               <Plus className="w-4 h-4" />
               Write the first post
@@ -264,7 +315,7 @@ export default function CommunityClient({ posts, myProjects }: { posts: Post[]; 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -272,15 +323,15 @@ export default function CommunityClient({ posts, myProjects }: { posts: Post[]; 
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="relative z-10 w-full max-w-md bg-white shadow-2xl flex flex-col h-full"
+              className="relative z-10 w-full max-w-xl bg-[#fcfcfc] shadow-[-12px_0_48px_rgba(0,0,0,0.12)] flex flex-col h-full sm:rounded-l-[32px] overflow-hidden"
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
-                <h2 className="font-display text-[17px] font-semibold text-neutral-900">New post</h2>
-                <button type="button" onClick={() => setOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+              <div className="flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-black/[0.04] shrink-0 bg-white">
+                <h2 className="font-display text-[18px] sm:text-[20px] font-bold text-[#1A1918]">New post</h2>
+                <button type="button" onClick={() => setOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-black/[0.03] hover:bg-black/[0.06] text-neutral-500 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-5 py-5">
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-8 custom-scrollbar">
                 <PostForm myProjects={myProjects} onClose={() => setOpen(false)} />
               </div>
             </motion.div>

@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Clock, Shuffle, Zap, MapPin, MessageSquare } from "lucide-react";
+import { Check, X, Clock, Zap, MapPin, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { respondToMatch, runMatchmaking } from "@/lib/supabase/actions";
 import { ProfileCardData } from "@/components/dashboard/ProfileCard";
+import { roleLabel } from "@/lib/utils/roles";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ function MatchCard({
 
   return (
     <div className={`bg-white border rounded-2xl overflow-hidden transition-all ${
-      isMutual ? "border-emerald-200 shadow-[0_0_0_3px_rgba(16,185,129,0.08)]" : "border-neutral-200/80"
+      isMutual ? "shadow-[0_4px_24px_rgba(16,185,129,0.12)] border-emerald-100" : "border border-black/[0.03] shadow-[0_4px_24px_rgba(26,25,24,0.04)]"
     }`}>
       {/* Mutual badge */}
       {isMutual && (
@@ -123,12 +124,14 @@ function MatchCard({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-[14px] font-semibold text-neutral-900">{other.full_name ?? "Anonymous"}</p>
-              {other.is_verified && <Zap className="w-3 h-3 text-indigo-500 shrink-0" />}
-              <span className={`text-[11px] font-medium capitalize px-1.5 py-0.5 rounded-full ml-auto ${
+              <p className="text-[14px] font-semibold text-[#1A1918]">{other.full_name ?? "Anonymous"}</p>
+              {other.is_verified && (
+                <img src="/icons/iconsax-star-3-acb2d2d1d45f-.svg" alt="Verified" className="w-3.5 h-3.5 shrink-0" style={{ filter: "invert(75%) sepia(60%) saturate(500%) hue-rotate(10deg) brightness(1.1)" }} />
+              )}
+              <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ml-auto ${
                 other.role === "builder" ? "bg-indigo-50 text-indigo-600" : "bg-emerald-50 text-emerald-600"
               }`}>
-                {other.role}
+                {roleLabel(other.role)}
               </span>
             </div>
             <div className="flex items-center gap-2 text-[12px] text-neutral-400 mt-0.5">
@@ -140,7 +143,7 @@ function MatchCard({
           {/* Score */}
           {match.score != null && (
             <div className="shrink-0 text-right">
-              <p className="text-[18px] font-display font-bold text-neutral-900">{Math.round(match.score)}</p>
+              <p className="text-[18px] font-display font-bold text-[#1A1918]">{Math.round(match.score)}</p>
               <p className="text-[10px] text-neutral-400 -mt-0.5">score</p>
             </div>
           )}
@@ -190,7 +193,7 @@ function MatchCard({
             <button
               type="button"
               onClick={() => onRespond(match.id, "no")}
-              className="flex-1 flex items-center justify-center gap-1.5 border border-neutral-200 text-neutral-600 text-[13px] font-medium rounded-xl py-2.5 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 btn-pill-outline hover:bg-red-50/50 hover:border-red-200 hover:text-red-600 w-full"
             >
               <X className="w-4 h-4" />
               Pass
@@ -198,7 +201,7 @@ function MatchCard({
             <button
               type="button"
               onClick={() => onRespond(match.id, "deferred")}
-              className="flex items-center justify-center gap-1.5 border border-neutral-200 text-neutral-500 text-[13px] font-medium rounded-xl px-3 py-2.5 hover:bg-neutral-50 transition-colors"
+              className="flex items-center justify-center gap-1.5 btn-pill-outline hover:bg-sage-light/10 hover:text-sage-dark hover:border-sage-light/30 px-4"
               title="Later"
             >
               <Clock className="w-4 h-4" />
@@ -206,7 +209,7 @@ function MatchCard({
             <button
               type="button"
               onClick={() => onRespond(match.id, "yes")}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-[13px] font-medium rounded-xl py-2.5 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 btn-pill-dark w-full"
             >
               <Check className="w-4 h-4" />
               Connect
@@ -272,13 +275,13 @@ export default function MatchesClient({ matches, userId }: Props) {
   const deferred = list.filter((m) => getMyStatus(m, userId) === "deferred");
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="max-w-lg mx-auto px-4 md:px-8 py-8">
+    <div className="w-full">
+      <div className="max-w-2xl mx-auto pt-4 pb-12">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-[24px] font-semibold tracking-tight text-neutral-900">Matches</h1>
+            <h1 className="font-display text-[24px] font-semibold tracking-tight text-[#1A1918]">Matches</h1>
             <p className="text-[13.5px] text-neutral-500 mt-0.5">
               {pending.length > 0 ? `${pending.length} waiting for your response` : "You're all caught up"}
             </p>
@@ -287,9 +290,9 @@ export default function MatchesClient({ matches, userId }: Props) {
             type="button"
             onClick={handleRunMatchmaking}
             disabled={isRunning}
-            className="flex items-center gap-1.5 border border-neutral-200 text-neutral-600 text-[13px] font-medium rounded-xl px-3.5 py-2 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 btn-pill-dark disabled:opacity-50"
           >
-            <Shuffle className={`w-4 h-4 ${isRunning ? "animate-spin" : ""}`} />
+            <img src="/icons/iconsax-repeat-arrow-609f448bc58a-.svg" alt="" className={`w-4 h-4 ${isRunning ? "animate-spin" : ""}`} />
             {isRunning ? "Finding…" : "Find matches"}
           </button>
         </div>
@@ -297,9 +300,9 @@ export default function MatchesClient({ matches, userId }: Props) {
         {list.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center py-20 px-6">
             <div className="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center mb-4">
-              <Shuffle className="w-6 h-6 text-neutral-400" />
+              <img src="/icons/iconsax-repeat-arrow-609f448bc58a-.svg" alt="" className="w-6 h-6 brightness-0 opacity-30" />
             </div>
-            <h3 className="font-display text-[17px] font-semibold text-neutral-900 mb-2">No matches yet</h3>
+            <h3 className="font-display text-[17px] font-semibold text-[#1A1918] mb-2">No matches yet</h3>
             <p className="text-[13.5px] text-neutral-500 max-w-xs mb-5">
               Complete your profile with skills and bio, then hit "Find matches".
             </p>
@@ -307,9 +310,9 @@ export default function MatchesClient({ matches, userId }: Props) {
               type="button"
               onClick={handleRunMatchmaking}
               disabled={isRunning}
-              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-[13.5px] font-medium rounded-xl px-5 py-2.5 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 btn-pill-dark disabled:opacity-50"
             >
-              <Shuffle className={`w-4 h-4 ${isRunning ? "animate-spin" : ""}`} />
+              <img src="/icons/iconsax-repeat-arrow-609f448bc58a-.svg" alt="" className={`w-4 h-4 ${isRunning ? "animate-spin" : ""}`} />
               {isRunning ? "Finding matches…" : "Find my first matches"}
             </button>
           </div>

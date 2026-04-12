@@ -14,7 +14,7 @@ export default async function IdeasPage() {
         .select(`
           id, title, description, stage, domain, what_exists, what_needed,
           owner_id, is_paused, created_at, last_updated_at,
-          profiles(full_name),
+          profiles(full_name, role),
           project_likes(profile_id),
           project_skill_needs(skill_id, is_must_have, skills(id, name))
         `)

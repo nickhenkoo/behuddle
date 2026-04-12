@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/clients";
+import { Send } from "lucide-react";
 
 export default function WeeklyAnswerFormClient({
   questionId,
@@ -28,29 +29,34 @@ export default function WeeklyAnswerFormClient({
 
   if (submitted) {
     return (
-      <p className="text-[13px] text-neutral-500">
-        Thanks for answering. ✓
-      </p>
+      <div className="flex items-center gap-2 text-[14px] text-sage-light font-medium bg-white/5 rounded-xl px-4 py-3 w-fit border border-white/10">
+        Thanks for answering. <span className="text-white">✓</span>
+      </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <textarea
-        value={answer}
-        onChange={(e) => setAnswer(e.target.value)}
-        rows={2}
-        maxLength={300}
-        placeholder="Your answer…"
-        className="w-full bg-neutral-50 hover:bg-white border border-neutral-200 hover:border-neutral-300 focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-100 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150 resize-none"
-      />
-      <button
-        type="submit"
-        disabled={isPending || !answer.trim()}
-        className="text-[13px] font-medium bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {isPending ? "Sending…" : "Send answer"}
-      </button>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="relative">
+        <textarea
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          rows={2}
+          maxLength={300}
+          placeholder="Share your thoughts..."
+          className="w-full bg-white/5 border border-white/10 hover:bg-white/10 focus:bg-white/10 focus:border-white/20 rounded-[16px] px-4 py-3.5 text-[14px] text-white placeholder-white/40 outline-none transition-all duration-200 resize-none custom-scrollbar shadow-inner"
+        />
+      </div>
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={isPending || !answer.trim()}
+          className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#1A1918] hover:bg-[#f6f5f4] disabled:bg-white/20 disabled:text-white/40 rounded-full text-[13px] font-semibold transition-all duration-200 disabled:cursor-not-allowed shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
+        >
+          {isPending ? "Sending..." : "Submit answer"}
+          {!isPending && <Send className="w-3.5 h-3.5" />}
+        </button>
+      </div>
     </form>
   );
 }

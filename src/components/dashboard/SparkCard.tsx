@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { roleLabel } from "@/lib/utils/roles";
 
 export async function SparkCard({ userId }: { userId: string }) {
   const supabase = await createClient();
@@ -8,8 +9,8 @@ export async function SparkCard({ userId }: { userId: string }) {
     id: string; spark_text: string | null; score: number | null; project_id: string | null;
     profile_a: string; profile_b: string;
     projects: { title: string } | { title: string }[] | null;
-    profiles_a: { id: string; full_name: string | null; role: string | null; bio: string | null } | { id: string; full_name: string | null; role: string | null; bio: string | null }[] | null;
-    profiles_b: { id: string; full_name: string | null; role: string | null; bio: string | null } | { id: string; full_name: string | null; role: string | null; bio: string | null }[] | null;
+    profiles_a: { id: string; full_name: string | null; role: string | null; bio: string | null; avatar_url: string | null } | { id: string; full_name: string | null; role: string | null; bio: string | null; avatar_url: string | null }[] | null;
+    profiles_b: { id: string; full_name: string | null; role: string | null; bio: string | null; avatar_url: string | null } | { id: string; full_name: string | null; role: string | null; bio: string | null; avatar_url: string | null }[] | null;
   };
   const { data: matchRaw } = await supabase
     .from("matches")
@@ -17,8 +18,8 @@ export async function SparkCard({ userId }: { userId: string }) {
       id, spark_text, score, project_id,
       profile_a, profile_b,
       projects(title),
-      profiles_a:profiles!matches_profile_a_fkey(id, full_name, role, bio),
-      profiles_b:profiles!matches_profile_b_fkey(id, full_name, role, bio)
+      profiles_a:profiles!matches_profile_a_fkey(id, full_name, role, bio, avatar_url),
+      profiles_b:profiles!matches_profile_b_fkey(id, full_name, role, bio, avatar_url)
     `)
     .or(`profile_a.eq.${userId},profile_b.eq.${userId}`)
     .eq("status_a", "pending")
@@ -30,10 +31,13 @@ export async function SparkCard({ userId }: { userId: string }) {
 
   if (!match) {
     return (
-      <div className="bg-white border border-neutral-200/80 rounded-xl px-5 py-5">
-        <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-widest mb-3">Spark of the day</p>
-        <p className="text-[13.5px] text-neutral-500">
-          No pending matches yet. Complete your profile and check back.
+      <div className="bg-white rounded-[24px] px-6 py-6 shadow-[0_8px_32px_rgba(26,25,24,0.04)] border border-black/[0.03]">
+        <div className="flex items-center gap-2 mb-4">
+          <img src="/icons/magic-star.svg" alt="" className="w-4 h-4" style={{ filter: "invert(72%) sepia(60%) saturate(600%) hue-rotate(5deg) brightness(1.05)" }} />
+          <p className="text-[12px] font-semibold text-neutral-500 tracking-wide uppercase">Spark of the day</p>
+        </div>
+        <p className="text-[14px] text-neutral-500 leading-relaxed">
+          No pending matches yet. Complete your profile and check back soon.
         </p>
       </div>
     );
@@ -46,38 +50,59 @@ export async function SparkCard({ userId }: { userId: string }) {
   const project = Array.isArray(match.projects) ? match.projects[0] : match.projects;
 
   return (
-    <div className="bg-white border border-neutral-200/80 rounded-xl px-5 py-5">
-      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-widest mb-3">Spark of the day</p>
+    <div className="bg-white rounded-[24px] px-6 py-6 shadow-[0_8px_32px_rgba(26,25,24,0.04)] border border-black/[0.03] transition-all hover:shadow-[0_12px_40px_rgba(26,25,24,0.08)]">
+      <div className="flex items-center gap-2 mb-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/magic-star.svg" alt="" className="w-4 h-4" style={{ filter: "invert(72%) sepia(60%) saturate(600%) hue-rotate(5deg) brightness(1.05)" }} />
+        <p className="text-[12px] font-semibold text-neutral-500 tracking-wide uppercase">Spark of the day</p>
+      </div>
 
-      <div className="flex items-start gap-3 mb-4">
-        <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 text-[13px] font-semibold text-neutral-600">
-          {(other?.full_name?.[0] ?? "?").toUpperCase()}
+      <div className="flex items-start gap-4 mb-5">
+        <div className="w-12 h-12 rounded-full bg-black/[0.04] flex items-center justify-center shrink-0 text-[14px] font-semibold text-neutral-600 border border-black/[0.04] overflow-hidden">
+          {other?.avatar_url
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={other.avatar_url} alt="" className="w-full h-full object-cover" />
+            : (other?.full_name?.[0] ?? "?").toUpperCase()
+          }
         </div>
-        <div>
-          <p className="text-[14px] font-semibold text-neutral-900">{other?.full_name ?? "Someone"}</p>
-          <p className="text-[12px] text-neutral-400 capitalize">{other?.role}</p>
+        <div className="flex-1 pt-0.5">
+          <p className="text-[16px] font-semibold text-[#1A1918]">{other?.full_name ?? "Someone"}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`text-[12px] font-medium px-2 py-0.5 rounded-full border ${
+              other?.role === "builder" ? "bg-indigo-50/50 text-indigo-600 border-indigo-100" : "bg-emerald-50/50 text-emerald-600 border-emerald-100"
+            }`}>
+              {roleLabel(other?.role)}
+            </span>
+          </div>
         </div>
         {match.score != null && (
-          <span className="ml-auto text-[12px] font-medium text-neutral-400 bg-neutral-50 border border-neutral-200 rounded-lg px-2 py-0.5">
-            {Math.round(Number(match.score))}% match
-          </span>
+          <div className="shrink-0 text-right pt-0.5">
+            <p className="text-[20px] font-display font-bold text-[#1A1918] leading-none">{Math.round(Number(match.score))}</p>
+            <p className="text-[11px] font-medium text-neutral-400 mt-1">score</p>
+          </div>
         )}
       </div>
 
       {match.spark_text && (
-        <p className="text-[13.5px] text-neutral-700 leading-relaxed border-l-2 border-indigo-200 pl-3 mb-4">
-          {match.spark_text}
-        </p>
+        <div className="mb-6 relative">
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-indigo-200" />
+          <p className="text-[14px] text-neutral-700 leading-relaxed italic pl-4">
+            "{match.spark_text}"
+          </p>
+        </div>
       )}
 
       {project?.title && (
-        <p className="text-[12px] text-neutral-400 mb-4">Project: {project.title}</p>
+        <div className="bg-[#f6f5f4] rounded-xl px-4 py-3 mb-6 flex items-center justify-between">
+          <span className="text-[12px] font-medium text-neutral-500 uppercase tracking-wide">For project</span>
+          <span className="text-[13px] font-semibold text-[#1A1918] truncate max-w-[200px]">{project.title}</span>
+        </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex">
         <Link
           href={`/dashboard/matches`}
-          className="flex-1 text-center bg-neutral-900 hover:bg-neutral-800 text-white text-[13px] font-medium rounded-lg px-4 py-2 transition-colors"
+          className="btn-pill-dark w-full py-3"
         >
           Review match
         </Link>

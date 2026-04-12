@@ -163,10 +163,14 @@ export const updateProfile = withAuth(async ({ supabase, user }, data: {
     bio?: string
     motivation?: string
     location?: string
+    lat?: number | null
+    lng?: number | null
     status?: string
     availability_hours?: number
     is_open_to_match?: boolean
     email_digest_opt_in?: boolean
+    portfolio_url?: string
+    github_url?: string
     skill_ids?: number[]
 }) => {
     const { skill_ids, ...profileData } = data

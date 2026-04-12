@@ -63,10 +63,10 @@ export default async function MessagesPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
+    <div className="w-full">
+      <div className="max-w-2xl mx-auto pt-4 pb-12">
         <div className="mb-6">
-          <h1 className="font-display text-[24px] font-semibold tracking-tight text-neutral-900">Messages</h1>
+          <h1 className="font-display text-[24px] font-semibold tracking-tight text-[#1A1918]">Messages</h1>
           <p className="text-[13.5px] text-neutral-500 mt-0.5">Conversations with your matches.</p>
         </div>
 
@@ -75,7 +75,7 @@ export default async function MessagesPage() {
             <div className="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center mb-4">
               <MessageSquare className="w-6 h-6 text-neutral-400" />
             </div>
-            <h3 className="font-display text-[17px] font-semibold text-neutral-900 mb-2">No conversations yet</h3>
+            <h3 className="font-display text-[17px] font-semibold text-[#1A1918] mb-2">No conversations yet</h3>
             <p className="text-[13.5px] text-neutral-500 max-w-xs">
               When both sides accept a match, a conversation opens here.
             </p>
@@ -95,7 +95,7 @@ export default async function MessagesPage() {
                 <Link
                   key={conv.id}
                   href={`/dashboard/messages/${conv.id}`}
-                  className="flex items-center gap-3 bg-white border border-neutral-200/80 rounded-xl px-4 py-3.5 hover:border-neutral-300 transition-colors"
+                  className="flex items-center gap-3 bg-white rounded-[20px] px-5 py-4 shadow-[0_2px_12px_rgba(26,25,24,0.03)] border border-black/[0.02] hover:shadow-[0_6px_24px_rgba(26,25,24,0.06)] hover:scale-[1.01] transition-all"
                 >
                   <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 text-[13px] font-semibold text-neutral-600 overflow-hidden">
                     {other?.avatar_url ? (
@@ -106,7 +106,7 @@ export default async function MessagesPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-medium text-neutral-900">
+                    <p className="text-[13.5px] font-medium text-[#1A1918]">
                       {other?.full_name ?? "Someone"}
                     </p>
                     {lastMsg ? (

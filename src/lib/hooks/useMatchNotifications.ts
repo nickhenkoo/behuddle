@@ -12,9 +12,10 @@ export function useMatchNotifications(userId: string | null) {
 
     const supabase = createClient();
     let isMounted = true;
+    const instanceId = Math.random().toString(36).slice(2, 7);
 
     const channel = supabase
-      .channel(`match-notifications-${userId}`)
+      .channel(`match-notifications-${userId}-${instanceId}`)
       .on(
         'postgres_changes',
         {

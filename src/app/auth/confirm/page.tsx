@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from "react";
 
 // Magic link handler — processes hash-fragment tokens from Supabase.
 //
@@ -13,7 +14,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/clients'
 
-export default function AuthConfirmPage() {
+function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
@@ -70,5 +71,13 @@ export default function AuthConfirmPage() {
         <p className="text-[13px] text-secondary">Signing you in…</p>
       </div>
     </main>
+  )
+}
+
+export default function AuthConfirmPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><p className="text-[13px] text-secondary">Loading...</p></div>}>
+      <AuthConfirmContent />
+    </Suspense>
   )
 }

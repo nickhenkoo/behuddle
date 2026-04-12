@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { motion } from "framer-motion";
 import { updateProfile, logout } from "@/lib/supabase/actions";
-import { Check, Zap, Crown, Sparkles, Trash2, LogOut } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { ProfileCardPopup } from "@/components/dashboard/ProfileCard";
+import { LocationPicker, type LocationValue } from "@/components/ui/LocationPicker";
+import { roleLabel } from "@/lib/utils/roles";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,11 +19,15 @@ interface Profile {
   bio?: string | null;
   motivation?: string | null;
   location?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   role?: string | null;
   status?: string | null;
   availability_hours?: number | null;
   is_open_to_match?: boolean | null;
   email_digest_opt_in?: boolean | null;
+  portfolio_url?: string | null;
+  github_url?: string | null;
   profile_skills?: { skill_id: number; level: string; skills: Skill | null }[] | null;
 }
 
@@ -41,10 +48,6 @@ function SectionHeader({ label, sub }: { label: string; sub?: string }) {
   );
 }
 
-function Divider() {
-  return <div className="h-px bg-neutral-100 my-8" />;
-}
-
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
@@ -57,7 +60,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-const inputCls = "w-full bg-neutral-50 hover:bg-white border border-neutral-200 hover:border-neutral-300 focus:bg-white focus:border-indigo-400 focus:ring-3 focus:ring-indigo-100 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150";
+const inputCls = "w-full bg-white border border-neutral-300 hover:border-neutral-400 focus:bg-white focus:border-[#1A1918] focus:ring-3 focus:ring-black/5 rounded-xl px-3.5 py-2.5 text-[13.5px] text-neutral-900 placeholder-neutral-400 outline-none transition-all duration-150";
 
 // ── Profile section ───────────────────────────────────────────────────────────
 
@@ -72,7 +75,11 @@ function ProfileSection({ profile, allSkills }: { profile: Profile | null; allSk
   );
   const [bio, setBio]         = useState(profile?.bio ?? "");
   const [motivation, setMot]  = useState(profile?.motivation ?? "");
-  const [location, setLoc]    = useState(profile?.location ?? "");
+  const [locValue, setLocValue] = useState<LocationValue>({
+    location: profile?.location ?? "",
+    lat: profile?.lat ?? null,
+    lng: profile?.lng ?? null,
+  });
   const [avatar, setAvatar]   = useState(profile?.avatar_url ?? "");
   const [skillIds, setSkillIds] = useState<number[]>(currentSkillIds);
   const [saved, setSaved]     = useState(false);
@@ -86,10 +93,12 @@ function ProfileSection({ profile, allSkills }: { profile: Profile | null; allSk
     start(async () => {
       await updateProfile({
         role,
-        bio:              bio || undefined,
-        motivation:       motivation || undefined,
-        location:         location || undefined,
-        skill_ids:        skillIds,
+        bio:        bio || undefined,
+        motivation: motivation || undefined,
+        location:   locValue.location || undefined,
+        lat:        locValue.lat ?? null,
+        lng:        locValue.lng ?? null,
+        skill_ids:  skillIds,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -125,13 +134,13 @@ function ProfileSection({ profile, allSkills }: { profile: Profile | null; allSk
               key={r}
               type="button"
               onClick={() => setRole(r)}
-              className={`py-3 px-4 text-left rounded-xl border transition-all duration-100 ${
+              className={`py-3 px-4 text-left rounded-2xl border transition-all duration-150 ${
                 role === r
-                  ? "bg-neutral-900 border-neutral-900 text-white"
-                  : "bg-neutral-50 border-neutral-200 hover:border-neutral-300 text-neutral-600"
+                  ? "bg-[#1A1918] border-[#1A1918] text-white shadow-sm"
+                  : "bg-white border-neutral-200 hover:border-neutral-400 text-neutral-600"
               }`}
             >
-              <p className="text-[13px] font-medium capitalize">{r}</p>
+              <p className="text-[13px] font-medium">{roleLabel(r)}</p>
               <p className={`text-[11.5px] mt-0.5 ${role === r ? "text-neutral-400" : "text-neutral-400"}`}>
                 {r === "builder" ? "I have an idea" : "I want to build"}
               </p>
@@ -166,9 +175,13 @@ function ProfileSection({ profile, allSkills }: { profile: Profile | null; allSk
         />
       </Field>
 
-      <Field label="City" hint="optional">
-        <input type="text" value={location} onChange={(e) => setLoc(e.target.value)}
-          placeholder="e.g. Berlin, Tokyo, Remote" className={inputCls} />
+      <Field label="City" hint="optional — used to show you on the Globe">
+        <LocationPicker
+          value={locValue}
+          onChange={setLocValue}
+          placeholder="e.g. Berlin, Tokyo, New York…"
+          inputClassName={inputCls}
+        />
       </Field>
 
       {/* Skills */}
@@ -189,10 +202,10 @@ function ProfileSection({ profile, allSkills }: { profile: Profile | null; allSk
                         key={skill.id}
                         type="button"
                         onClick={() => toggle(skill.id)}
-                        className={`text-[12px] px-2.5 py-1 rounded-lg border transition-all duration-100 ${
+                        className={`text-[12px] px-3 py-1 rounded-full border transition-all duration-150 ${
                           active
-                            ? "border-neutral-900 bg-neutral-900 text-white"
-                            : "border-neutral-200 bg-neutral-50 hover:border-neutral-300 text-neutral-600"
+                            ? "border-[#1A1918] bg-[#1A1918] text-white shadow-sm"
+                            : "border-neutral-200 bg-white hover:border-neutral-400 text-neutral-600"
                         }`}
                       >
                         {skill.name}
@@ -210,70 +223,13 @@ function ProfileSection({ profile, allSkills }: { profile: Profile | null; allSk
         type="button"
         onClick={handleSave}
         disabled={isPending}
-        className="flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-white text-[13.5px] font-medium rounded-xl px-5 py-2.5 transition-all active:scale-[0.99] disabled:opacity-50"
+        className="flex items-center gap-2 btn-pill-dark disabled:opacity-50 w-full justify-center"
       >
         {saved
           ? <><Check className="w-4 h-4" /> Saved</>
           : isPending ? "Saving…" : "Save changes"
         }
       </button>
-    </div>
-  );
-}
-
-// ── Appearance section ────────────────────────────────────────────────────────
-
-const ACCENTS = [
-  { name: "Indigo",  value: "indigo",  cls: "bg-indigo-500" },
-  { name: "Emerald", value: "emerald", cls: "bg-emerald-500" },
-  { name: "Rose",    value: "rose",    cls: "bg-rose-500" },
-  { name: "Amber",   value: "amber",   cls: "bg-amber-500" },
-  { name: "Slate",   value: "slate",   cls: "bg-slate-600" },
-];
-
-function AppearanceSection() {
-  const [accent, setAccent] = useState("indigo");
-  const [compact, setCompact] = useState(false);
-
-  return (
-    <div className="space-y-6">
-      <SectionHeader label="Appearance" sub="Visual preferences — stored locally in your browser." />
-
-      <div>
-        <p className="text-[12.5px] font-medium text-neutral-600 mb-3">Accent colour</p>
-        <div className="flex items-center gap-2.5">
-          {ACCENTS.map((a) => (
-            <button
-              key={a.value}
-              type="button"
-              onClick={() => setAccent(a.value)}
-              title={a.name}
-              className={`relative w-7 h-7 rounded-full ${a.cls} transition-transform ${accent === a.value ? "scale-110 ring-2 ring-offset-2 ring-neutral-400" : "opacity-60 hover:opacity-100"}`}
-            >
-              {accent === a.value && (
-                <Check className="absolute inset-0 m-auto w-3.5 h-3.5 text-white" />
-              )}
-            </button>
-          ))}
-        </div>
-        <p className="text-[11.5px] text-neutral-400 mt-2">Full theme support coming soon.</p>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[13.5px] font-medium text-neutral-800">Compact mode</p>
-          <p className="text-[12.5px] text-neutral-500">Reduce spacing for more content density</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCompact((v) => !v)}
-          className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${compact ? "bg-neutral-900" : "bg-neutral-200"}`}
-          role="switch"
-          aria-checked={compact}
-        >
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${compact ? "translate-x-4" : "translate-x-0"}`} />
-        </button>
-      </div>
     </div>
   );
 }
@@ -305,9 +261,9 @@ function SubscriptionSection() {
       <SectionHeader label="Plan" sub="Manage your behuddle subscription." />
 
       {/* Current plan */}
-      <div className="flex items-center gap-3 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5">
-        <div className="w-8 h-8 rounded-lg bg-neutral-200 flex items-center justify-center shrink-0">
-          <Zap className="w-4 h-4 text-neutral-500" />
+      <div className="flex items-center gap-3 bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3.5">
+        <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center shrink-0">
+          <img src="/icons/iconsax-star-3-acb2d2d1d45f-.svg" alt="" className="w-4 h-4 brightness-0 opacity-40" />
         </div>
         <div>
           <p className="text-[13.5px] font-semibold text-neutral-900">Free</p>
@@ -318,7 +274,7 @@ function SubscriptionSection() {
       {/* Plans comparison */}
       <div className="grid grid-cols-2 gap-3">
         {/* Free */}
-        <div className="border border-neutral-200 rounded-xl p-4">
+        <div className="border border-neutral-200 rounded-2xl p-4">
           <p className="text-[13px] font-semibold text-neutral-700 mb-0.5">Free</p>
           <p className="text-[22px] font-display font-bold text-neutral-900 mb-3">$0</p>
           <ul className="space-y-1.5">
@@ -332,8 +288,8 @@ function SubscriptionSection() {
         </div>
 
         {/* Pro */}
-        <div className="relative border-2 border-neutral-900 rounded-xl p-4 bg-neutral-900">
-          <span className="absolute -top-2.5 left-3 text-[10px] font-semibold bg-indigo-500 text-white px-2 py-0.5 rounded-full">
+        <div className="relative border-2 border-[#1A1918] rounded-2xl p-4 bg-[#1A1918]">
+          <span className="absolute -top-2.5 left-3 text-[10px] font-bold bg-amber-500 text-white px-2.5 py-0.5 rounded-full tracking-widest uppercase">
             PRO
           </span>
           <p className="text-[13px] font-semibold text-neutral-300 mb-0.5">Pro</p>
@@ -344,7 +300,7 @@ function SubscriptionSection() {
           <ul className="space-y-1.5">
             {PLAN_FEATURES.pro.map((f) => (
               <li key={f} className="flex items-start gap-2 text-[12px] text-neutral-300">
-                <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+                <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                 {f}
               </li>
             ))}
@@ -355,17 +311,21 @@ function SubscriptionSection() {
       <button
         type="button"
         onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 w-full justify-center bg-neutral-900 hover:bg-neutral-800 text-white text-[13.5px] font-medium rounded-xl px-5 py-2.5 transition-all active:scale-[0.99]"
+        className="flex items-center gap-2 w-full justify-center btn-pill-dark"
       >
-        <Crown className="w-4 h-4" />
+        <img src="/icons/iconsax-crown-d811f1fd55ed-.svg" alt="" className="w-4 h-4" />
         Upgrade to Pro
       </button>
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl border border-neutral-200 shadow-xl w-full max-w-sm p-6 text-center">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-6 h-6 text-indigo-500" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-2xl border border-neutral-200 shadow-xl w-full max-w-sm p-6 text-center"
+          >
+            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-6 h-6 text-amber-500" />
             </div>
             <h3 className="font-display text-[18px] font-semibold text-neutral-900 mb-2">Coming soon</h3>
             <p className="text-[13.5px] text-neutral-500 mb-5">
@@ -374,11 +334,11 @@ function SubscriptionSection() {
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="w-full bg-neutral-900 text-white text-[13.5px] font-medium rounded-xl py-2.5 hover:bg-neutral-800 transition-colors"
+              className="w-full btn-pill-dark"
             >
               Got it
             </button>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
@@ -402,6 +362,8 @@ function PreviewSection({ profile }: { profile: Profile | null }) {
     availability_hours: profile.availability_hours ?? null,
     is_open_to_match:   profile.is_open_to_match ?? null,
     is_verified:        false,
+    portfolio_url:      profile.portfolio_url ?? null,
+    github_url:         profile.github_url ?? null,
     profile_skills:     profile.profile_skills ?? [],
   };
 
@@ -447,92 +409,87 @@ function AccountSection({ email, profile }: { email: string; profile: Profile | 
     <div className="space-y-5">
       <SectionHeader label="Account" />
 
+      {/* Email */}
       <div className="space-y-1.5">
         <p className="text-[12.5px] font-medium text-neutral-600">Email address</p>
-        <div className="flex items-center gap-3 bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5">
+        <div className="flex items-center gap-3 bg-white border border-neutral-300 rounded-2xl px-3.5 py-2.5">
           <p className="text-[13.5px] text-neutral-700 flex-1">{email}</p>
-          <span className="text-[11px] bg-neutral-200 text-neutral-500 font-medium px-2 py-0.5 rounded-full">verified</span>
+          <span className="text-[11px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold px-2.5 py-0.5 rounded-full">verified</span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-neutral-50 border border-neutral-200 rounded-xl">
+      {/* Weekly digest toggle */}
+      <div className="flex items-center justify-between p-4 bg-white border border-neutral-200 rounded-2xl">
         <div>
-          <p className="text-[12.5px] font-medium text-neutral-600">Weekly digest</p>
-          <p className="text-[11.5px] text-neutral-500 mt-0.5">Get a summary of your top matches each week</p>
+          <p className="text-[13.5px] font-medium text-neutral-800">Weekly digest</p>
+          <p className="text-[12px] text-neutral-500 mt-0.5">Get a summary of your top matches each week</p>
         </div>
         <button
           type="button"
           onClick={handleDigestToggle}
           disabled={isPending}
-          className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-            emailDigestOptIn ? 'bg-indigo-600' : 'bg-neutral-300'
-          } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 shrink-0 ${
+            emailDigestOptIn ? 'bg-emerald-500' : 'bg-neutral-200'
+          } ${isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          role="switch"
+          aria-checked={emailDigestOptIn}
         >
           <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-              emailDigestOptIn ? 'translate-x-4.5' : 'translate-x-0.5'
+            className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+              emailDigestOptIn ? 'translate-x-[22px]' : 'translate-x-[2px]'
             }`}
           />
         </button>
       </div>
 
-      <div>
-        <p className="text-[12.5px] font-medium text-neutral-600 mb-1.5">Password</p>
-        <button
-          type="button"
-          className="text-[13.5px] font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-        >
-          Send password reset email →
-        </button>
-      </div>
-
+      {/* Sign out */}
       <button
         type="button"
         onClick={handleLogout}
         disabled={isPending}
-        className="flex items-center gap-2 text-[13.5px] font-medium text-neutral-500 hover:text-neutral-800 transition-colors disabled:opacity-50"
+        className="flex items-center gap-2.5 text-[13.5px] font-medium text-neutral-500 hover:text-neutral-800 transition-colors disabled:opacity-50"
       >
-        <LogOut className="w-4 h-4" />
+        <img src="/icons/logout-02.svg" alt="" className="w-4 h-4 brightness-0 opacity-40" />
         {isPending ? "Signing out…" : "Sign out"}
       </button>
 
       {/* Danger zone */}
-      <div className="border border-red-100 rounded-xl p-4 bg-red-50/50">
+      <div className="border border-red-100 rounded-2xl p-5 bg-red-50/40">
         <p className="text-[13px] font-semibold text-red-700 mb-1">Danger zone</p>
-        <p className="text-[12.5px] text-red-600/80 mb-3">
+        <p className="text-[12.5px] text-red-600/70 mb-4">
           Deleting your account is permanent. All matches, messages, and projects will be removed.
         </p>
         {!showDelete ? (
           <button
             type="button"
             onClick={() => setShowDelete(true)}
-            className="flex items-center gap-1.5 text-[13px] font-medium text-red-600 hover:text-red-700 transition-colors"
+            className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-full border border-red-200 text-red-600 bg-white hover:bg-red-50 hover:border-red-300 transition-all"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <img src="/icons/trash-square.svg" alt="" className="w-4 h-4" style={{ filter: "invert(35%) sepia(80%) saturate(500%) hue-rotate(320deg)" }} />
             Delete account
           </button>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-[12.5px] text-red-700">Type <strong>delete my account</strong> to confirm.</p>
             <input
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              className="w-full border border-red-200 bg-white rounded-lg px-3 py-2 text-[13px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+              className="w-full border border-red-200 bg-white rounded-xl px-3.5 py-2.5 text-[13px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all"
               placeholder="delete my account"
             />
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => { setShowDelete(false); setConfirmText(""); }}
-                className="text-[12.5px] text-neutral-500 hover:text-neutral-700 transition-colors px-2"
+                className="text-[12.5px] font-medium text-neutral-500 hover:text-neutral-700 transition-colors px-3 py-1.5 rounded-full border border-neutral-200 bg-white hover:border-neutral-300"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 disabled={confirmText !== "delete my account"}
-                className="text-[12.5px] font-medium text-red-600 hover:text-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="text-[12.5px] font-medium px-4 py-1.5 rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 Confirm deletion
               </button>
@@ -547,19 +504,18 @@ function AccountSection({ email, profile }: { email: string; profile: Profile | 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: "profile",      label: "Profile" },
-  { id: "preview",      label: "Preview" },
-  { id: "appearance",   label: "Appearance" },
-  { id: "plan",         label: "Plan" },
-  { id: "account",      label: "Account" },
+  { id: "profile",  label: "Profile" },
+  { id: "preview",  label: "Preview" },
+  { id: "plan",     label: "Plan" },
+  { id: "account",  label: "Account" },
 ];
 
 export default function SettingsClient({ profile, email, allSkills }: Props) {
   const [tab, setTab] = useState("profile");
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-      <div className="max-w-xl mx-auto px-4 md:px-8 py-8">
+    <div className="w-full">
+      <div className="max-w-2xl mx-auto pt-4 pb-12">
 
         {/* Header */}
         <div className="mb-7">
@@ -567,16 +523,16 @@ export default function SettingsClient({ profile, email, allSkills }: Props) {
         </div>
 
         {/* Tab bar */}
-        <div className="flex items-center gap-0.5 bg-neutral-100 rounded-xl p-1 mb-7">
+        <div className="flex items-center gap-0.5 bg-[#e2ddd8] rounded-2xl p-1 mb-7">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex-1 text-[12.5px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150 ${
+              className={`flex-1 text-[12.5px] font-medium px-3 py-2 rounded-xl transition-all duration-200 ${
                 tab === t.id
-                  ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-500 hover:text-neutral-700"
+                  ? "bg-white text-[#1A1918] shadow-[0_2px_8px_rgba(26,25,24,0.10)]"
+                  : "text-neutral-500 hover:text-neutral-800"
               }`}
             >
               {t.label}
@@ -584,12 +540,18 @@ export default function SettingsClient({ profile, email, allSkills }: Props) {
           ))}
         </div>
 
-        {/* Content */}
-        {tab === "profile"    && <ProfileSection profile={profile} allSkills={allSkills} />}
-        {tab === "preview"    && <PreviewSection profile={profile} />}
-        {tab === "appearance" && <AppearanceSection />}
-        {tab === "plan"       && <SubscriptionSection />}
-        {tab === "account"    && <AccountSection email={email} profile={profile} />}
+        {/* Tab content — no exit animation to prevent height-collapse jump */}
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+        >
+          {tab === "profile"  && <ProfileSection profile={profile} allSkills={allSkills} />}
+          {tab === "preview"  && <PreviewSection profile={profile} />}
+          {tab === "plan"     && <SubscriptionSection />}
+          {tab === "account"  && <AccountSection email={email} profile={profile} />}
+        </motion.div>
       </div>
     </div>
   );

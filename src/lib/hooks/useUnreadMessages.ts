@@ -18,6 +18,7 @@ export function useUnreadMessages(userId: string | null) {
 
     const supabase = createClient();
     let isMounted = true;
+    const instanceId = Math.random().toString(36).slice(2, 7);
 
     const fetchUnreadCount = async () => {
       try {
@@ -40,7 +41,7 @@ export function useUnreadMessages(userId: string | null) {
 
     // New messages
     const messageChannel = supabase
-      .channel(`unread-messages-${userId}`)
+      .channel(`unread-messages-${userId}-${instanceId}`)
       .on(
         'postgres_changes',
         {
@@ -69,7 +70,7 @@ export function useUnreadMessages(userId: string | null) {
 
     // Read-status updates
     const readChannel = supabase
-      .channel(`read-status-${userId}`)
+      .channel(`read-status-${userId}-${instanceId}`)
       .on(
         'postgres_changes',
         {
