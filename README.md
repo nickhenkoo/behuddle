@@ -98,46 +98,6 @@ src/
 └── middleware.ts
 ```
 
----
-
-## Environment variables
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=       # required for magic link generation and cron
-
-# Site
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-
-# AI
-ANTHROPIC_API_KEY=               # required for Spark text
-
-# Email
-RESEND_API_KEY=                  # required for magic links + weekly digest
-
-# Optional
-CRON_SECRET=                     # bearer token to protect /api/cron/send-digest
-```
-
-Copy `.env.local.example` to `.env.local` and fill in the values.
-
----
-
-## Getting started
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-For the full feature set (Spark generation, magic links, email digest) you need a Supabase project with all migrations applied, an Anthropic API key, and a Resend API key.
-
----
-
 ## Matchmaking algorithm
 
 Scoring runs in the Supabase Edge Function `match-engine` (triggered on profile update, project create/update, and every 6h via cron):
